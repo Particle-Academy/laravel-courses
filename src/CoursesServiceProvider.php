@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FancyUi\LaravelCourses;
+namespace ParticleAcademy\LaravelCourses;
 
 use Illuminate\Support\ServiceProvider;
 

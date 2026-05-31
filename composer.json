@@ -1,5 +1,5 @@
 {
-    "name": "fancy-ui/laravel-courses",
+    "name": "particle-academy/laravel-courses",
     "description": "Laravel package for selling and serving educational courses and full curriculums online.",
     "type": "library",
     "license": "proprietary",
@@ -14,18 +14,18 @@
     },
     "autoload": {
         "psr-4": {
-            "FancyUi\\LaravelCourses\\": "src/"
+            "ParticleAcademy\\LaravelCourses\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "FancyUi\\LaravelCourses\\Tests\\": "tests/"
+            "ParticleAcademy\\LaravelCourses\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "FancyUi\\LaravelCourses\\CoursesServiceProvider"
+                "ParticleAcademy\\LaravelCourses\\CoursesServiceProvider"
             ]
         }
     },
