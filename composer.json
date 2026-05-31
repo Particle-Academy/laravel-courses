@@ -1,12 +1,17 @@
 {
     "name": "particle-academy/laravel-courses",
-    "description": "Laravel package for selling and serving educational courses and full curriculums online.",
+    "description": "Laravel package for selling and serving educational curriculums, courses, tests, and certificates.",
     "type": "library",
     "license": "proprietary",
     "require": {
         "php": "^8.3",
+        "barryvdh/laravel-dompdf": "^3.0",
         "illuminate/contracts": "^13.0",
-        "illuminate/support": "^13.0"
+        "illuminate/database": "^13.0",
+        "illuminate/http": "^13.0",
+        "illuminate/routing": "^13.0",
+        "illuminate/support": "^13.0",
+        "illuminate/validation": "^13.0"
     },
     "require-dev": {
         "orchestra/testbench": "^11.0",
@@ -14,7 +19,8 @@
     },
     "autoload": {
         "psr-4": {
-            "ParticleAcademy\\LaravelCourses\\": "src/"
+            "ParticleAcademy\\LaravelCourses\\": "src/",
+            "ParticleAcademy\\LaravelCourses\\Database\\Factories\\": "database/factories/"
         }
     },
     "autoload-dev": {
