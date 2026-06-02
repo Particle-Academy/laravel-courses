@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use ParticleAcademy\LaravelCourses\Enums\DeliveryMode;
 
 class Course extends Model
 {
@@ -21,6 +22,7 @@ class Course extends Model
     protected $casts = [
         'is_published'       => 'boolean',
         'is_required'        => 'boolean',
+        'delivery_mode'      => DeliveryMode::class,
         'sort_order'         => 'integer',
         'estimated_minutes'  => 'integer',
         'hours'              => 'decimal:2',
@@ -28,6 +30,16 @@ class Course extends Model
         'highlights'         => AsArrayObject::class,
         'metadata'           => AsArrayObject::class,
     ];
+
+    public function isOnline(): bool
+    {
+        return ($this->delivery_mode ?? DeliveryMode::Online)->isOnline();
+    }
+
+    public function isInPerson(): bool
+    {
+        return ($this->delivery_mode ?? DeliveryMode::Online)->isInPerson();
+    }
 
     public function curriculums(): BelongsToMany
     {

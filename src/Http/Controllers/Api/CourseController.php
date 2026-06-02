@@ -60,6 +60,7 @@ class CourseController extends Controller
             'sort_order'              => 'nullable|integer|min:0',
             'is_published'            => 'nullable|boolean',
             'is_required'             => 'nullable|boolean',
+            'delivery_mode'           => 'nullable|in:online,in_person,hybrid',
             'price'                   => 'nullable|numeric|min:0',
             'currency'                => 'nullable|string|size:3',
             'highlights'              => 'nullable|array',

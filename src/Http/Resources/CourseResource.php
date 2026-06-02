@@ -21,6 +21,7 @@ class CourseResource extends JsonResource
             'sort_order'        => $this->sort_order,
             'is_published'      => $this->is_published,
             'is_required'       => $this->is_required,
+            'delivery_mode'     => $this->delivery_mode?->value,
             'price'             => $this->price !== null ? (float) $this->price : null,
             'currency'          => $this->currency,
             'highlights'        => $this->highlights,
