@@ -41,4 +41,9 @@ class Lesson extends Model
     {
         return $this->hasMany(LessonCompletion::class);
     }
+
+    protected static function newFactory(): \ParticleAcademy\LaravelCourses\Database\Factories\LessonFactory
+    {
+        return \ParticleAcademy\LaravelCourses\Database\Factories\LessonFactory::new();
+    }
 }

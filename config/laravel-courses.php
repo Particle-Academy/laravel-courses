@@ -54,6 +54,16 @@ return [
         'orientation' => 'landscape',
 
         // Verification code format: number of bytes (output is hex, so 2x chars).
+        // verification_code is the URL-safe random token used in the public
+        // verify endpoint. It is NOT the human-readable certificate number.
         'verification_bytes' => 8,
+
+        // Human-readable certificate number format. Tokens replaced at issue:
+        //   {prefix} → certificates.number_prefix
+        //   {year}   → 4-digit issue year
+        //   {random} → uppercased base36 of certificates.number_random_length
+        'number_prefix'        => env('LARAVEL_COURSES_CERT_PREFIX', 'CERT'),
+        'number_format'        => '{prefix}-{year}-{random}',
+        'number_random_length' => 6,
     ],
 ];

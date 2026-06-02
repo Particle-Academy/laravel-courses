@@ -22,6 +22,7 @@ class Curriculum extends Model
     protected $casts = [
         'is_published' => 'boolean',
         'sort_order'   => 'integer',
+        'price'        => 'decimal:2',
         'metadata'     => AsArrayObject::class,
     ];
 
@@ -41,5 +42,10 @@ class Curriculum extends Model
     public function enrollments(): MorphMany
     {
         return $this->morphMany(Enrollment::class, 'enrollable');
+    }
+
+    protected static function newFactory(): \ParticleAcademy\LaravelCourses\Database\Factories\CurriculumFactory
+    {
+        return \ParticleAcademy\LaravelCourses\Database\Factories\CurriculumFactory::new();
     }
 }

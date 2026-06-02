@@ -57,4 +57,9 @@ class Test extends Model
     {
         return $this->max_attempts ?? config('laravel-courses.defaults.max_attempts');
     }
+
+    protected static function newFactory(): \ParticleAcademy\LaravelCourses\Database\Factories\TestFactory
+    {
+        return \ParticleAcademy\LaravelCourses\Database\Factories\TestFactory::new();
+    }
 }

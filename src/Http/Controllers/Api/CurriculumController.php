@@ -39,6 +39,8 @@ class CurriculumController extends Controller
             'description'             => 'nullable|string',
             'sort_order'              => 'nullable|integer|min:0',
             'is_published'            => 'nullable|boolean',
+            'price'                   => 'nullable|numeric|min:0',
+            'currency'                => 'nullable|string|size:3',
             'certificate_template_id' => 'nullable|integer|exists:certificate_templates,id',
             'metadata'                => 'nullable|array',
         ]);
@@ -54,6 +56,8 @@ class CurriculumController extends Controller
             'description'             => 'nullable|string',
             'sort_order'              => 'nullable|integer|min:0',
             'is_published'            => 'nullable|boolean',
+            'price'                   => 'nullable|numeric|min:0',
+            'currency'                => 'nullable|string|size:3',
             'certificate_template_id' => 'nullable|integer|exists:certificate_templates,id',
             'metadata'                => 'nullable|array',
         ]);

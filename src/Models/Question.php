@@ -36,4 +36,9 @@ class Question extends Model
     {
         return $this->hasMany(AttemptAnswer::class);
     }
+
+    protected static function newFactory(): \ParticleAcademy\LaravelCourses\Database\Factories\QuestionFactory
+    {
+        return \ParticleAcademy\LaravelCourses\Database\Factories\QuestionFactory::new();
+    }
 }

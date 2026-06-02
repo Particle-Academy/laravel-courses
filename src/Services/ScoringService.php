@@ -6,6 +6,7 @@ namespace ParticleAcademy\LaravelCourses\Services;
 
 use Illuminate\Support\Facades\DB;
 use ParticleAcademy\LaravelCourses\Enums\QuestionType;
+use ParticleAcademy\LaravelCourses\Events\TestAttemptFinished;
 use ParticleAcademy\LaravelCourses\Models\AttemptAnswer;
 use ParticleAcademy\LaravelCourses\Models\Enrollment;
 use ParticleAcademy\LaravelCourses\Models\Question;
@@ -102,12 +103,15 @@ class ScoringService
                 'passed'         => $hasManualGrade ? null : $scorePercent >= $test->effectivePassingScore(),
             ])->save();
 
+            $fresh = $attempt->refresh();
+            TestAttemptFinished::dispatch($fresh);
+
             $enrollment = $attempt->enrollment()->first();
             if ($enrollment && $this->progress->isFullyComplete($enrollment->refresh())) {
                 $this->enrollments->complete($enrollment);
             }
 
-            return $attempt->refresh();
+            return $fresh;
         });
     }
 

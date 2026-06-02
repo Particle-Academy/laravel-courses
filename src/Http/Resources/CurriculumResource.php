@@ -20,6 +20,8 @@ class CurriculumResource extends JsonResource
             'description'  => $this->description,
             'sort_order'   => $this->sort_order,
             'is_published' => $this->is_published,
+            'price'        => $this->price !== null ? (float) $this->price : null,
+            'currency'     => $this->currency,
             'metadata'     => $this->metadata,
             'courses'      => CourseResource::collection($this->whenLoaded('courses')),
             'certificate_template' => new CertificateTemplateResource($this->whenLoaded('certificateTemplate')),

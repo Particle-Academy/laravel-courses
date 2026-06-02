@@ -23,6 +23,8 @@ class EnrollmentResource extends JsonResource
             'status'          => $this->status?->value,
             'started_at'      => $this->started_at,
             'completed_at'    => $this->completed_at,
+            'expires_at'      => $this->expires_at,
+            'is_expired'      => $this->isExpired(),
             'enrollable_type' => $this->enrollable_type,
             'enrollable_id'   => $this->enrollable_id,
             'target_kind'     => match (true) {

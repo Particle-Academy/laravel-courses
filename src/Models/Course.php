@@ -20,8 +20,12 @@ class Course extends Model
 
     protected $casts = [
         'is_published'       => 'boolean',
+        'is_required'        => 'boolean',
         'sort_order'         => 'integer',
         'estimated_minutes'  => 'integer',
+        'hours'              => 'decimal:2',
+        'price'              => 'decimal:2',
+        'highlights'         => AsArrayObject::class,
         'metadata'           => AsArrayObject::class,
     ];
 
@@ -55,5 +59,10 @@ class Course extends Model
     public function enrollments(): MorphMany
     {
         return $this->morphMany(Enrollment::class, 'enrollable');
+    }
+
+    protected static function newFactory(): \ParticleAcademy\LaravelCourses\Database\Factories\CourseFactory
+    {
+        return \ParticleAcademy\LaravelCourses\Database\Factories\CourseFactory::new();
     }
 }

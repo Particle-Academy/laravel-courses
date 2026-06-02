@@ -16,8 +16,9 @@ class Certificate extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'issued_at' => 'datetime',
-        'metadata'  => AsArrayObject::class,
+        'issued_at'  => 'datetime',
+        'revoked_at' => 'datetime',
+        'metadata'   => AsArrayObject::class,
     ];
 
     public function enrollment(): BelongsTo
@@ -28,5 +29,18 @@ class Certificate extends Model
     public function template(): BelongsTo
     {
         return $this->belongsTo(CertificateTemplate::class, 'certificate_template_id');
+    }
+
+    public function issuedBy(): BelongsTo
+    {
+        /** @var class-string<\Illuminate\Database\Eloquent\Model> $model */
+        $model = config('laravel-courses.user_model');
+
+        return $this->belongsTo($model, 'issued_by_user_id');
+    }
+
+    public function isRevoked(): bool
+    {
+        return $this->revoked_at !== null;
     }
 }

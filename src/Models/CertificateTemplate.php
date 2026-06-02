@@ -29,4 +29,9 @@ class CertificateTemplate extends Model
     {
         return static::query()->where('is_default', true)->first();
     }
+
+    protected static function newFactory(): \ParticleAcademy\LaravelCourses\Database\Factories\CertificateTemplateFactory
+    {
+        return \ParticleAcademy\LaravelCourses\Database\Factories\CertificateTemplateFactory::new();
+    }
 }

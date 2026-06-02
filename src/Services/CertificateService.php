@@ -7,6 +7,8 @@ namespace ParticleAcademy\LaravelCourses\Services;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Filesystem\FilesystemManager;
+use ParticleAcademy\LaravelCourses\Events\CertificateIssued;
+use ParticleAcademy\LaravelCourses\Events\CertificateRevoked;
 use ParticleAcademy\LaravelCourses\Models\Certificate;
 use ParticleAcademy\LaravelCourses\Models\CertificateTemplate;
 use ParticleAcademy\LaravelCourses\Models\Course;
@@ -30,6 +32,8 @@ class CertificateService
         Enrollment $enrollment,
         ?CertificateTemplate $template = null,
         array $metadata = [],
+        int|string|null $issuedByUserId = null,
+        ?string $notes = null,
     ): Certificate {
         $template ??= $this->resolveTemplate($enrollment);
 
@@ -38,18 +42,48 @@ class CertificateService
             return $existing;
         }
 
-        return Certificate::create([
+        $verificationCode = $this->generateVerificationCode();
+        $certificateNumber = $this->generateCertificateNumber();
+
+        $certificate = Certificate::create([
             'enrollment_id'           => $enrollment->getKey(),
             'certificate_template_id' => $template?->getKey(),
-            'verification_code'       => $this->generateVerificationCode(),
+            'verification_code'       => $verificationCode,
+            'certificate_number'      => $certificateNumber,
+            'issued_by_user_id'       => $issuedByUserId,
             'issued_at'               => now(),
+            'notes'                   => $notes,
             'metadata'                => $metadata ?: null,
         ]);
+
+        CertificateIssued::dispatch($certificate);
+
+        return $certificate;
     }
 
-    public function verify(string $code): ?Certificate
+    public function revoke(Certificate $certificate, ?string $reason = null): Certificate
     {
-        return Certificate::query()->where('verification_code', $code)->first();
+        if ($certificate->isRevoked()) {
+            return $certificate;
+        }
+
+        $certificate->forceFill([
+            'revoked_at'        => now(),
+            'revocation_reason' => $reason,
+        ])->save();
+
+        $fresh = $certificate->refresh();
+        CertificateRevoked::dispatch($fresh, $reason);
+
+        return $fresh;
+    }
+
+    public function verify(string $codeOrNumber): ?Certificate
+    {
+        return Certificate::query()
+            ->where('verification_code', $codeOrNumber)
+            ->orWhere('certificate_number', $codeOrNumber)
+            ->first();
     }
 
     /**
@@ -199,5 +233,21 @@ class CertificateService
         }
 
         return strtoupper(bin2hex(random_bytes($bytes)));
+    }
+
+    private function generateCertificateNumber(): string
+    {
+        $prefix = (string) config('laravel-courses.certificates.number_prefix', 'CERT');
+        $format = (string) config('laravel-courses.certificates.number_format', '{prefix}-{year}-{random}');
+        $length = max(1, (int) config('laravel-courses.certificates.number_random_length', 6));
+
+        $random = strtoupper(substr(base_convert(bin2hex(random_bytes(8)), 16, 36), 0, $length));
+        $random = str_pad($random, $length, '0', STR_PAD_LEFT);
+
+        return strtr($format, [
+            '{prefix}' => $prefix,
+            '{year}'   => date('Y'),
+            '{random}' => $random,
+        ]);
     }
 }

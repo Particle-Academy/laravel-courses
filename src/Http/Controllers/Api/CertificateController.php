@@ -71,10 +71,24 @@ class CertificateController extends Controller
         }
 
         return response()->json([
-            'valid'             => true,
-            'verification_code' => $certificate->verification_code,
-            'issued_at'         => $certificate->issued_at,
+            'valid'              => ! $certificate->isRevoked(),
+            'verification_code'  => $certificate->verification_code,
+            'certificate_number' => $certificate->certificate_number,
+            'issued_at'          => $certificate->issued_at,
+            'revoked_at'         => $certificate->revoked_at,
+            'revocation_reason'  => $certificate->revocation_reason,
         ]);
+    }
+
+    public function revoke(Request $request, Certificate $certificate): CertificateResource
+    {
+        $data = $request->validate([
+            'reason' => 'nullable|string|max:1000',
+        ]);
+
+        $revoked = $this->certificates->revoke($certificate, $data['reason'] ?? null);
+
+        return new CertificateResource($revoked->fresh());
     }
 
     private function assertOwnership(Request $request, Certificate $certificate): void

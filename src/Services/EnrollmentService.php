@@ -7,6 +7,8 @@ namespace ParticleAcademy\LaravelCourses\Services;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use ParticleAcademy\LaravelCourses\Enums\EnrollmentStatus;
+use ParticleAcademy\LaravelCourses\Events\EnrollmentCompleted;
+use ParticleAcademy\LaravelCourses\Events\LearnerEnrolled;
 use ParticleAcademy\LaravelCourses\Models\Course;
 use ParticleAcademy\LaravelCourses\Models\Curriculum;
 use ParticleAcademy\LaravelCourses\Models\Enrollment;
@@ -19,20 +21,19 @@ class EnrollmentService
      *
      * @param  array<string,mixed>  $metadata
      */
-    public function enroll(int|string $userId, Curriculum|Course $target, array $metadata = []): Enrollment
-    {
-        return Enrollment::firstOrCreate(
-            [
-                'user_id'         => $userId,
-                'enrollable_type' => $target::class,
-                'enrollable_id'   => $target->getKey(),
-            ],
-            [
-                'status'     => EnrollmentStatus::Active,
-                'started_at' => now(),
-                'metadata'   => $metadata ?: null,
-            ],
-        );
+    public function enroll(
+        int|string $userId,
+        Curriculum|Course $target,
+        array $metadata = [],
+        ?\DateTimeInterface $expiresAt = null,
+    ): Enrollment {
+        [$enrollment, $created] = $this->firstOrCreate($userId, $target, $metadata, $expiresAt);
+
+        if ($created) {
+            LearnerEnrolled::dispatch($enrollment);
+        }
+
+        return $enrollment;
     }
 
     public function complete(Enrollment $enrollment): Enrollment
@@ -46,7 +47,43 @@ class EnrollmentService
             'completed_at' => now(),
         ])->save();
 
-        return $enrollment->refresh();
+        $fresh = $enrollment->refresh();
+        EnrollmentCompleted::dispatch($fresh);
+
+        return $fresh;
+    }
+
+    /**
+     * @param  array<string,mixed>  $metadata
+     * @return array{0:Enrollment,1:bool}
+     */
+    private function firstOrCreate(
+        int|string $userId,
+        Curriculum|Course $target,
+        array $metadata,
+        ?\DateTimeInterface $expiresAt,
+    ): array {
+        $existing = Enrollment::query()
+            ->where('user_id', $userId)
+            ->where('enrollable_type', $target::class)
+            ->where('enrollable_id', $target->getKey())
+            ->first();
+
+        if ($existing) {
+            return [$existing, false];
+        }
+
+        $enrollment = Enrollment::create([
+            'user_id'         => $userId,
+            'enrollable_type' => $target::class,
+            'enrollable_id'   => $target->getKey(),
+            'status'          => EnrollmentStatus::Active,
+            'started_at'      => now(),
+            'expires_at'      => $expiresAt,
+            'metadata'        => $metadata ?: null,
+        ]);
+
+        return [$enrollment, true];
     }
 
     public function drop(Enrollment $enrollment): Enrollment

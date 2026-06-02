@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ParticleAcademy\LaravelCourses\Services;
 
 use Illuminate\Support\Collection;
+use ParticleAcademy\LaravelCourses\Events\LessonCompleted;
 use ParticleAcademy\LaravelCourses\Models\Course;
 use ParticleAcademy\LaravelCourses\Models\Curriculum;
 use ParticleAcademy\LaravelCourses\Models\Enrollment;
@@ -30,6 +31,10 @@ class ProgressService
             ],
             ['completed_at' => now()],
         );
+
+        if ($completion->wasRecentlyCreated) {
+            LessonCompleted::dispatch($enrollment, $lesson, $completion);
+        }
 
         if ($this->isFullyComplete($enrollment->refresh())) {
             $this->enrollments->complete($enrollment);

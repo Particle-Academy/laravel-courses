@@ -33,4 +33,9 @@ class Module extends Model
     {
         return $this->hasMany(Test::class);
     }
+
+    protected static function newFactory(): \ParticleAcademy\LaravelCourses\Database\Factories\ModuleFactory
+    {
+        return \ParticleAcademy\LaravelCourses\Database\Factories\ModuleFactory::new();
+    }
 }

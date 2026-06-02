@@ -23,4 +23,9 @@ class QuestionOption extends Model
     {
         return $this->belongsTo(Question::class);
     }
+
+    protected static function newFactory(): \ParticleAcademy\LaravelCourses\Database\Factories\QuestionOptionFactory
+    {
+        return \ParticleAcademy\LaravelCourses\Database\Factories\QuestionOptionFactory::new();
+    }
 }

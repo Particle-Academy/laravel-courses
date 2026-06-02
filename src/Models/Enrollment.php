@@ -23,8 +23,14 @@ class Enrollment extends Model
         'status'       => EnrollmentStatus::class,
         'started_at'   => 'datetime',
         'completed_at' => 'datetime',
+        'expires_at'   => 'datetime',
         'metadata'     => AsArrayObject::class,
     ];
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
+    }
 
     public function user(): BelongsTo
     {

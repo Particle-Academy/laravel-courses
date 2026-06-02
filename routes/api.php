@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use ParticleAcademy\LaravelCourses\Http\Controllers\Api\AdminCompletionController;
 use ParticleAcademy\LaravelCourses\Http\Controllers\Api\CertificateController;
 use ParticleAcademy\LaravelCourses\Http\Controllers\Api\CertificateTemplateController;
 use ParticleAcademy\LaravelCourses\Http\Controllers\Api\CourseController;
@@ -75,6 +76,14 @@ Route::post('attempts/{attempt}/submit', [TestAttemptController::class, 'submit'
 Route::post('enrollments/{enrollment}/certificate', [CertificateController::class, 'issueForEnrollment']);
 Route::get('certificates/{certificate}', [CertificateController::class, 'show']);
 Route::get('certificates/{certificate}/pdf', [CertificateController::class, 'pdf']);
+Route::post('certificates/{certificate}/revoke', [CertificateController::class, 'revoke']);
+
+/*
+|--------------------------------------------------------------------------
+| Admin short-circuits
+|--------------------------------------------------------------------------
+*/
+Route::post('admin/completions', [AdminCompletionController::class, 'store']);
 
 /*
 |--------------------------------------------------------------------------
