@@ -11,10 +11,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use ParticleAcademy\LaravelCourses\Concerns\GeneratesSlug;
 use ParticleAcademy\LaravelCourses\Enums\DeliveryMode;
 
 class Course extends Model
 {
+    use GeneratesSlug;
     use HasFactory;
 
     protected $guarded = [];

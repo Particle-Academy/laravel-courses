@@ -10,9 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use ParticleAcademy\LaravelCourses\Concerns\GeneratesSlug;
 
 class Curriculum extends Model
 {
+    use GeneratesSlug;
     use HasFactory;
 
     protected $table = 'curriculums';

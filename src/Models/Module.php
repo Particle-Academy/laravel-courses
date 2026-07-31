@@ -8,9 +8,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use ParticleAcademy\LaravelCourses\Concerns\GeneratesSlug;
 
 class Module extends Model
 {
+    use GeneratesSlug;
     use HasFactory;
 
     protected $guarded = [];
@@ -18,6 +20,12 @@ class Module extends Model
     protected $casts = [
         'sort_order' => 'integer',
     ];
+
+    /** Slug is unique per course, not globally. */
+    protected function slugScopeColumn(): ?string
+    {
+        return 'course_id';
+    }
 
     public function course(): BelongsTo
     {

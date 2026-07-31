@@ -64,6 +64,22 @@ Enrollment ─── Certificate ─── CertificateTemplate
 - **Enrollments are polymorphic.** A learner can enroll in either a `Curriculum` (the whole program) or a single `Course`.
 - **Certificates are signed by both a random `verification_code` (URL-safe) and a human-readable `certificate_number`** (`{prefix}-{year}-{random}` by default). Either resolves the public `verify` endpoint.
 
+### Slugs
+
+`Curriculum`, `Course`, `Test`, `CertificateTemplate`, `Module` and `Lesson` fill
+in their own `slug` when you do not supply one — derived from the title, with a
+`-2`, `-3` suffix on collision. `modules` and `lessons` are unique per course;
+the rest are unique globally.
+
+```php
+Course::create(['title' => 'Patrol Basics']);   // slug: patrol-basics
+Course::create(['title' => 'Patrol Basics']);   // slug: patrol-basics-2
+```
+
+Pass a `slug` explicitly to override. **Create-only** — an existing slug is never
+rewritten when a title changes, because a published URL that silently moves is
+worse than an out-of-date one.
+
 ## Endpoints
 
 All routes mount under the configured prefix (default `/api/courses`).

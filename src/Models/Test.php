@@ -8,9 +8,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use ParticleAcademy\LaravelCourses\Concerns\GeneratesSlug;
 
 class Test extends Model
 {
+    use GeneratesSlug;
     use HasFactory;
 
     protected $guarded = [];
