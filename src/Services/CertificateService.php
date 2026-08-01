@@ -169,6 +169,10 @@ class CertificateService
             'issuedAt'         => $certificate->issued_at?->format('F j, Y') ?? '',
             'issuer'           => config('app.name'),
             'verificationCode' => $certificate->verification_code,
+            // The number is what a holder quotes and an employer types in, so
+            // it belongs alongside the code rather than only reachable by
+            // walking the model.
+            'certificateNumber' => $certificate->certificate_number,
         ];
     }
 

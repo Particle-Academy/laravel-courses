@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use ParticleAcademy\LaravelCourses\Http\Middleware\AuthorizeCourseAdmin;
 use ParticleAcademy\LaravelCourses\Http\Controllers\Api\AdminCompletionController;
 use ParticleAcademy\LaravelCourses\Http\Controllers\Api\CertificateController;
 use ParticleAcademy\LaravelCourses\Http\Controllers\Api\CertificateTemplateController;
@@ -19,36 +20,55 @@ use ParticleAcademy\LaravelCourses\Http\Controllers\Api\TestController;
 
 /*
 |--------------------------------------------------------------------------
-| Content management (authoring)
+| Content — reading is open, writing is not
 |--------------------------------------------------------------------------
+| A catalogue of published courses is normally public, so the index/show
+| routes are ungated. Everything that CREATES, CHANGES or DESTROYS content
+| sits behind AuthorizesCourseAdmin, whose default binding denies everyone.
 */
 
-Route::apiResource('curriculums', CurriculumController::class)->scoped(['curriculum' => 'slug']);
-Route::post('curriculums/{curriculum:slug}/courses', [CurriculumController::class, 'attachCourse']);
-Route::delete('curriculums/{curriculum:slug}/courses/{course:slug}', [CurriculumController::class, 'detachCourse']);
-
-Route::apiResource('courses', CourseController::class)->scoped(['course' => 'slug']);
-
+Route::apiResource('curriculums', CurriculumController::class)
+    ->only(['index', 'show'])->scoped(['curriculum' => 'slug']);
+Route::apiResource('courses', CourseController::class)
+    ->only(['index', 'show'])->scoped(['course' => 'slug']);
 Route::apiResource('courses.modules', ModuleController::class)
-    ->scoped(['course' => 'slug', 'module' => 'slug']);
-
+    ->only(['index', 'show'])->scoped(['course' => 'slug', 'module' => 'slug']);
 Route::apiResource('courses.lessons', LessonController::class)
-    ->scoped(['course' => 'slug', 'lesson' => 'slug']);
-
-Route::apiResource('tests', TestController::class)->scoped(['test' => 'slug']);
-
+    ->only(['index', 'show'])->scoped(['course' => 'slug', 'lesson' => 'slug']);
+Route::apiResource('tests', TestController::class)
+    ->only(['index', 'show'])->scoped(['test' => 'slug']);
 Route::get('tests/{test:slug}/questions', [QuestionController::class, 'index']);
-Route::post('tests/{test:slug}/questions', [QuestionController::class, 'store']);
 Route::get('tests/{test:slug}/questions/{question}', [QuestionController::class, 'show']);
-Route::match(['put', 'patch'], 'tests/{test:slug}/questions/{question}', [QuestionController::class, 'update']);
-Route::delete('tests/{test:slug}/questions/{question}', [QuestionController::class, 'destroy']);
-
 Route::get('questions/{question}/options', [QuestionOptionController::class, 'index']);
-Route::post('questions/{question}/options', [QuestionOptionController::class, 'store']);
-Route::match(['put', 'patch'], 'questions/{question}/options/{option}', [QuestionOptionController::class, 'update']);
-Route::delete('questions/{question}/options/{option}', [QuestionOptionController::class, 'destroy']);
 
-Route::apiResource('certificate-templates', CertificateTemplateController::class);
+Route::middleware(AuthorizeCourseAdmin::class)->group(function (): void {
+    Route::apiResource('curriculums', CurriculumController::class)
+        ->except(['index', 'show'])->scoped(['curriculum' => 'slug']);
+    Route::post('curriculums/{curriculum:slug}/courses', [CurriculumController::class, 'attachCourse']);
+    Route::delete('curriculums/{curriculum:slug}/courses/{course:slug}', [CurriculumController::class, 'detachCourse']);
+
+    Route::apiResource('courses', CourseController::class)
+        ->except(['index', 'show'])->scoped(['course' => 'slug']);
+
+    Route::apiResource('courses.modules', ModuleController::class)
+        ->except(['index', 'show'])->scoped(['course' => 'slug', 'module' => 'slug']);
+
+    Route::apiResource('courses.lessons', LessonController::class)
+        ->except(['index', 'show'])->scoped(['course' => 'slug', 'lesson' => 'slug']);
+
+    Route::apiResource('tests', TestController::class)
+        ->except(['index', 'show'])->scoped(['test' => 'slug']);
+
+    Route::post('tests/{test:slug}/questions', [QuestionController::class, 'store']);
+    Route::match(['put', 'patch'], 'tests/{test:slug}/questions/{question}', [QuestionController::class, 'update']);
+    Route::delete('tests/{test:slug}/questions/{question}', [QuestionController::class, 'destroy']);
+
+    Route::post('questions/{question}/options', [QuestionOptionController::class, 'store']);
+    Route::match(['put', 'patch'], 'questions/{question}/options/{option}', [QuestionOptionController::class, 'update']);
+    Route::delete('questions/{question}/options/{option}', [QuestionOptionController::class, 'destroy']);
+
+    Route::apiResource('certificate-templates', CertificateTemplateController::class);
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -76,14 +96,19 @@ Route::post('attempts/{attempt}/submit', [TestAttemptController::class, 'submit'
 Route::post('enrollments/{enrollment}/certificate', [CertificateController::class, 'issueForEnrollment']);
 Route::get('certificates/{certificate}', [CertificateController::class, 'show']);
 Route::get('certificates/{certificate}/pdf', [CertificateController::class, 'pdf']);
-Route::post('certificates/{certificate}/revoke', [CertificateController::class, 'revoke']);
 
 /*
 |--------------------------------------------------------------------------
 | Admin short-circuits
 |--------------------------------------------------------------------------
+| Issuing a certificate without the learner having done the work, and
+| revoking one that was earned, are the two most consequential things this
+| package can do. Both are admin-gated.
 */
-Route::post('admin/completions', [AdminCompletionController::class, 'store']);
+Route::middleware(AuthorizeCourseAdmin::class)->group(function (): void {
+    Route::post('admin/completions', [AdminCompletionController::class, 'store']);
+    Route::post('certificates/{certificate}/revoke', [CertificateController::class, 'revoke']);
+});
 
 /*
 |--------------------------------------------------------------------------

@@ -14,6 +14,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trust a caller-supplied learner id
+    |--------------------------------------------------------------------------
+    | When true, a request with no authenticated user may identify the learner
+    | with a `user_id` input or an `X-Learner-Id` header.
+    |
+    | This DEFEATS every ownership check in the package — the controllers do
+    | verify that an enrollment belongs to the resolved learner, but a caller
+    | who can name the learner passes that check trivially. Leave it off unless
+    | the routes are mounted behind middleware that has already authenticated
+    | the caller (a trusted server-to-server integration, say).
+    */
+    'allow_input_user_id' => env('LARAVEL_COURSES_ALLOW_INPUT_USER_ID', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Route mounting
     |--------------------------------------------------------------------------
     */
