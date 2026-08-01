@@ -10,6 +10,13 @@ upgrading.
 
 ## [Unreleased]
 
+## 0.1.0 — 2026-08-01
+
+**First published release.** The package existed and was consumed from source
+(GuardCard, via a path repo) long before it reached Packagist, so the BREAKING
+notes below are aimed at that consumer — nothing can break for anyone
+installing 0.1.0 fresh.
+
 ### Security
 
 - **BREAKING — the authoring and admin routes are no longer open to everyone.**
