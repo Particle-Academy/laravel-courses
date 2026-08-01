@@ -21,7 +21,7 @@ enrollment ── lesson_completion                          test_attempt ──
 - **Enrollment is polymorphic** — a learner enrols in a `Curriculum` *or* a bare
   `Course`, and the same learner can hold both independently.
 - **A test attaches at any level.** `course_id`, `module_id` and `lesson_id` are
-  each nullable. **But see the known gap below before using the other two.**
+  each nullable, and all three count toward progress and completion.
 - **Services own the behaviour**, not the models: `EnrollmentService`,
   `ProgressService`, `ScoringService`, `CertificateService`. Controllers are thin
   and the services are what a host should call directly.
@@ -46,20 +46,29 @@ enrollment ── lesson_completion                          test_attempt ──
 - **Never change grading silently.** Scoring semantics are covered by tests
   precisely because a change here retroactively alters who passed.
 
-## Known gap
+## `testIdsFor()` — read before touching it
 
-**Module- and lesson-level tests do not count toward progress.**
-`ProgressService::testIdsFor()` only queries `course_id`, so a quiz hung off a
-module or lesson is invisible to `summary()` and `isFullyComplete()` — an
-enrollment can report complete with it unpassed. `ProgressTest` documents this
-rather than asserting the ideal, because changing which tests count changes who
-gets certified. **Attach tests at course level** until it is resolved.
+`ProgressService::testIdsFor()` once queried `course_id` alone, so quizzes hung
+off a module or a lesson were invisible to `summary()` and `isFullyComplete()` —
+an enrollment reported complete, and could be certified, with them unpassed. It
+now walks all three columns.
+
+Three ways to break it again, each covered by a test:
+
+- **Leaking scope.** The `orWhereIn`s must stay inside a closure, or the OR
+  escapes its `where` and pulls in tests from courses the learner is not
+  enrolled in.
+- **Double counting.** A test naming `course_id`, `module_id` AND `lesson_id`
+  is one test. Counting it per matching branch inflates the denominator and
+  nobody can ever finish.
+- **Curriculum fan-out.** A curriculum has to see module/lesson tests across
+  *all* its courses, not just the first.
 
 ## Testing
 
 ```bash
 composer install
-vendor/bin/phpunit                                   # 55 tests
+vendor/bin/phpunit                                   # 58 tests
 vendor/bin/phpunit --filter AuthorizationTest        # the security contract
 ```
 

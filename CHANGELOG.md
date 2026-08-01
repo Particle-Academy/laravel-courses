@@ -59,7 +59,7 @@ upgrading.
 
 - **A test suite.** The package shipped with no phpunit configuration and three
   `smoke-*.php` scripts that had to be run by hand through `artisan tinker`
-  against a real host app. There are now **55 tests / 113 assertions** on
+  against a real host app. There are now **58 tests / 116 assertions** on
   `orchestra/testbench` covering enrollment, progress, scoring across all four
   question types, certificates, and the authorization contract above.
 - **CI** — `.github/workflows/ci.yml`, matching the rest of the kit.
@@ -67,16 +67,34 @@ upgrading.
   `verificationCode` was exposed, so a template could not print the number a
   holder actually quotes without reaching through the model.
 
+### Fixed
+
+- **BREAKING (behaviour) — module- and lesson-level tests now count toward
+  progress.** `tests` declares `course_id`, `module_id` and `lesson_id` as three
+  independent nullable columns, but `ProgressService::testIdsFor()` queried
+  `course_id` alone. A quiz attached to a module or a lesson was invisible to
+  `summary()` and `isFullyComplete()`, so an enrollment reported **fully
+  complete — and was therefore certifiable — with those quizzes unpassed.** A
+  schema that permits an attachment the progress calculation cannot see has a
+  hole in it; writing around it in every authoring tool would only spread the
+  assumption.
+
+  **What you must DO:** nothing, if every test you have sets `course_id` — the
+  result is identical. If you have module- or lesson-level tests, enrollments
+  that previously read complete may now read incomplete, because they are being
+  measured against work that was always required and never counted. **Check
+  before upgrading:**
+
+  ```sql
+  SELECT COUNT(*) FROM tests WHERE course_id IS NULL
+    AND (module_id IS NOT NULL OR lesson_id IS NOT NULL);
+  ```
+
+  Already-issued certificates are unaffected — they are records, not
+  recalculations.
+
 ### Known limitations
 
-- **Module- and lesson-level tests do not count toward progress.** `tests`
-  declares `course_id`, `module_id` and `lesson_id` as three independent
-  nullable columns, but `ProgressService::testIdsFor()` only queries
-  `course_id` — so a quiz attached to a module or a lesson is invisible, and an
-  enrollment can read as fully complete with it unpassed. Covered by a test that
-  documents the behaviour rather than asserting the ideal, because changing
-  which tests count changes completion — and therefore certification — for
-  existing enrollments. **Attach tests at course level until this is resolved.**
 - An unknown placeholder in a certificate template renders empty rather than
   raising. Deliberate — a typo should not 500 someone's certificate download —
   but it does mean typos surface as blanks.

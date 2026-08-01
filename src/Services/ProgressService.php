@@ -11,6 +11,7 @@ use ParticleAcademy\LaravelCourses\Models\Curriculum;
 use ParticleAcademy\LaravelCourses\Models\Enrollment;
 use ParticleAcademy\LaravelCourses\Models\Lesson;
 use ParticleAcademy\LaravelCourses\Models\LessonCompletion;
+use ParticleAcademy\LaravelCourses\Models\Module;
 use ParticleAcademy\LaravelCourses\Models\Test;
 use RuntimeException;
 
@@ -74,17 +75,46 @@ class ProgressService
     {
         $target = $enrollment->enrollable;
 
-        if ($target instanceof Course) {
-            return Test::query()->where('course_id', $target->getKey())->pluck('id');
+        $courseIds = match (true) {
+            $target instanceof Course     => collect([$target->getKey()]),
+            $target instanceof Curriculum => $target->courses()->pluck('courses.id'),
+            default                       => collect(),
+        };
+
+        if ($courseIds->isEmpty()) {
+            return collect();
         }
 
-        if ($target instanceof Curriculum) {
-            $courseIds = $target->courses()->pluck('courses.id');
+        return $this->testIdsForCourses($courseIds);
+    }
 
-            return Test::query()->whereIn('course_id', $courseIds)->pluck('id');
-        }
+    /**
+     * Every test reachable from a set of courses — at course, module OR lesson
+     * level.
+     *
+     * `tests` declares `course_id`, `module_id` and `lesson_id` as three
+     * independent nullable columns, so a quiz can legitimately hang off any of
+     * the three. This used to query `course_id` alone, which made module- and
+     * lesson-level quizzes invisible to progress: an enrollment reported fully
+     * complete — and therefore certifiable — with them unpassed. A schema that
+     * permits an attachment the progress calculation cannot see is a schema
+     * with a hole in it, not a convention to write around.
+     *
+     * @param  Collection<int,int>  $courseIds
+     * @return Collection<int,int>
+     */
+    private function testIdsForCourses(Collection $courseIds): Collection
+    {
+        $moduleIds = Module::query()->whereIn('course_id', $courseIds)->pluck('id');
+        $lessonIds = Lesson::query()->whereIn('course_id', $courseIds)->pluck('id');
 
-        return collect();
+        return Test::query()
+            ->where(function ($query) use ($courseIds, $moduleIds, $lessonIds): void {
+                $query->whereIn('course_id', $courseIds)
+                    ->orWhereIn('module_id', $moduleIds)
+                    ->orWhereIn('lesson_id', $lessonIds);
+            })
+            ->pluck('id');
     }
 
     /**

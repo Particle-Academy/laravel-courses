@@ -125,21 +125,7 @@ class ProgressTest extends TestCase
         $this->assertSame(EnrollmentStatus::Active, $enrollment->refresh()->status);
     }
 
-    /**
-     * Documents a real gap rather than asserting the ideal.
-     *
-     * `tests` declares `course_id`, `module_id` and `lesson_id` as three
-     * independent nullable columns, so a quiz can legitimately hang off a
-     * module or a lesson. `ProgressService::testIdsFor()` only ever queries
-     * `course_id` — so a module- or lesson-level quiz is invisible to progress,
-     * and an enrollment reads as fully complete without it ever being passed.
-     *
-     * Left as a documented limitation, not silently "fixed": changing which
-     * tests count changes completion (and therefore certification) for existing
-     * enrollments, which is a host-visible decision rather than ours to make
-     * quietly. Attach tests at course level until this is resolved.
-     */
-    public function test_KNOWN_GAP_module_and_lesson_level_tests_do_not_count_toward_progress(): void
+    public function test_module_and_lesson_level_tests_count_toward_progress(): void
     {
         $course = Course::factory()->create();
         $module = Module::factory()->create(['course_id' => $course->id]);
@@ -153,10 +139,69 @@ class ProgressTest extends TestCase
 
         $summary = $this->progress()->summary($enrollment->refresh());
 
-        $this->assertSame(0, $summary['tests_total'], 'Module/lesson tests are not counted.');
-        $this->assertTrue(
-            $this->progress()->isFullyComplete($enrollment),
-            'Enrollment reads complete despite two unpassed quizzes.',
-        );
+        // The schema permits a quiz on a module or a lesson. Progress that
+        // could not see them certified learners who had not passed them.
+        $this->assertSame(2, $summary['tests_total']);
+        $this->assertFalse($this->progress()->isFullyComplete($enrollment));
+    }
+
+    public function test_module_and_lesson_tests_are_scoped_to_the_enrolled_courses(): void
+    {
+        $mine  = Course::factory()->create();
+        $other = Course::factory()->create();
+
+        $myModule    = Module::factory()->create(['course_id' => $mine->id]);
+        $otherModule = Module::factory()->create(['course_id' => $other->id]);
+        $otherLesson = Lesson::factory()->create(['course_id' => $other->id]);
+
+        CourseTest::factory()->create(['course_id' => null, 'module_id' => $myModule->id]);
+        CourseTest::factory()->create(['course_id' => null, 'module_id' => $otherModule->id]);
+        CourseTest::factory()->create(['course_id' => null, 'lesson_id' => $otherLesson->id]);
+
+        $enrollment = $this->enrollments()->enroll($this->learner()->id, $mine);
+
+        // Widening which tests count must not widen it to somebody else's
+        // course — the obvious way to get this wrong is an unscoped orWhere.
+        $this->assertSame(1, $this->progress()->summary($enrollment)['tests_total']);
+    }
+
+    public function test_a_test_counts_once_even_when_it_names_several_levels(): void
+    {
+        $course = Course::factory()->create();
+        $module = Module::factory()->create(['course_id' => $course->id]);
+        $lesson = Lesson::factory()->create(['course_id' => $course->id, 'module_id' => $module->id]);
+
+        CourseTest::factory()->create([
+            'course_id' => $course->id,
+            'module_id' => $module->id,
+            'lesson_id' => $lesson->id,
+        ]);
+
+        $enrollment = $this->enrollments()->enroll($this->learner()->id, $course);
+
+        // One row matching three branches of the same OR must not be counted
+        // three times, or the denominator inflates and nobody can finish.
+        $this->assertSame(1, $this->progress()->summary($enrollment)['tests_total']);
+    }
+
+    public function test_a_curriculum_sees_module_tests_across_all_its_courses(): void
+    {
+        $curriculum = Curriculum::factory()->create();
+        $a = Course::factory()->create();
+        $b = Course::factory()->create();
+        $curriculum->courses()->attach([$a->id => ['sort_order' => 0], $b->id => ['sort_order' => 1]]);
+
+        CourseTest::factory()->create([
+            'course_id' => null,
+            'module_id' => Module::factory()->create(['course_id' => $a->id])->id,
+        ]);
+        CourseTest::factory()->create([
+            'course_id' => null,
+            'lesson_id' => Lesson::factory()->create(['course_id' => $b->id])->id,
+        ]);
+
+        $enrollment = $this->enrollments()->enroll($this->learner()->id, $curriculum);
+
+        $this->assertSame(2, $this->progress()->summary($enrollment)['tests_total']);
     }
 }
