@@ -1,6 +1,8 @@
 # particle-academy/laravel-courses
 
-Laravel package for selling and serving educational curriculums, courses, tests, and certificates. API-only — bring your own UI (or use the [fancy-courses React kit](#fancy-courses-react-uX) shipped alongside).
+[![Fancified](art/fancified.svg)](https://particle.academy)
+
+Laravel package for selling and serving educational curriculums, courses, tests, and certificates. API-only — bring your own UI (or use the [`@particle-academy/classroom` React kit](#classroom-react-ux) built for it).
 
 ## Install
 
@@ -156,9 +158,9 @@ verificationCode, certificate, enrollment
 
 The default template ships at `resources/views/certificates/default.blade.php`. Publish + edit it to brand certificates.
 
-## Fancy-Courses React UX
+## Classroom React UX
 
-A companion React kit lives at `resources/js/packages/fancy-courses/` in the sandbox app. It's the in-tree dev checkout of the future `@particle-academy/fancy-courses` npm package — built on `@particle-academy/react-fancy`, talks to this API. To extract: lift the whole folder into its own repo and `npm publish`. The peer deps are already declared in its `package.json`.
+The companion React kit is [`@particle-academy/classroom`](https://github.com/Particle-Academy/classroom) on npm — built on `@particle-academy/react-fancy`, talks to this API.
 
 Components:
 
@@ -172,16 +174,17 @@ The `CoursesClient` (axios) covers the learner flow. Pass `learnerId` in its opt
 
 ## Tests
 
-Inside the host app (which already has the package autoloaded via path repo):
+The suite runs standalone on Orchestra Testbench:
 
 ```sh
-php artisan test --filter=Courses
+composer install
+vendor/bin/phpunit
 ```
 
 The shipped tests cover the full learner flow (enroll → complete lesson → pass test → issue certificate → public verify) and the revocation cycle. Factories for every model live under `database/factories/`.
 
-For a quick interactive smoke:
+For a quick interactive smoke, from a Laravel app that has the package installed:
 
 ```sh
-php artisan tinker --execute="require 'packages/laravel-courses/tests/smoke-flow.php';"
+php artisan tinker --execute="require '<absolute path>/tests/smoke-flow.php';"
 ```
