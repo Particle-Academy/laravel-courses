@@ -33,6 +33,11 @@ enrollment ── lesson_completion                          test_attempt ──
   **Never widen this to "allow unless configured"** — it was exactly that once,
   and an anonymous request could mint a certificate for any user id. Reads and
   `GET verify/{code}` stay public on purpose.
+- **Self-enrolment is free-only by default.** `GatesSelfEnrollment` is asked
+  before `POST enrollments` creates anything; `FreeEnrollmentOnly` refuses a
+  priced target. A host that sells enrols the buyer itself via
+  `EnrollmentService`, which the gate does not govern. Don't move the gate
+  into `EnrollmentService` — that would block the host's own paid path.
 - **`LearnerResolver` is the only source of learner identity.** Every ownership
   check compares against it, so a controller must never take a user id straight
   from the request. `allow_input_user_id` defaults to `false` and turning it on
@@ -45,6 +50,25 @@ enrollment ── lesson_completion                          test_attempt ──
   them; don't hand-roll `Str::slug()` per caller.
 - **Never change grading silently.** Scoring semantics are covered by tests
   precisely because a change here retroactively alters who passed.
+
+## In-person courses
+
+`delivery_mode` decides what progress is made of:
+
+| Mode | Counts toward completion |
+|---|---|
+| `online` | lessons + tests |
+| `in_person` | attendance hours only (`attendance_hours`, else `hours`) |
+| `hybrid` | lessons + tests, plus attendance if `attendance_hours` is set |
+
+- **An `in_person` course's lessons are invisible to progress.** That is the
+  feature, not a gap: it is how online material gets authored on a course that
+  is still taught live, without changing anything for its enrollees until the
+  mode is switched.
+- **Attendance is admin-only, reads included.** A learner recording their own
+  seat time is self-certification by another route.
+- Hours and lessons are different units, so `overall_percent` AVERAGES the two
+  halves rather than adding them.
 
 ## `testIdsFor()` — read before touching it
 
@@ -68,7 +92,7 @@ Three ways to break it again, each covered by a test:
 
 ```bash
 composer install
-vendor/bin/phpunit                                   # 58 tests
+vendor/bin/phpunit                                   # 75 tests
 vendor/bin/phpunit --filter AuthorizationTest        # the security contract
 ```
 

@@ -67,6 +67,7 @@ class CourseController extends Controller
             'highlights.*'            => 'string',
             'estimated_minutes'       => 'nullable|integer|min:0',
             'hours'                   => 'nullable|numeric|min:0',
+            'attendance_hours'        => 'nullable|numeric|min:0|max:999',
             'certificate_template_id' => 'nullable|integer|exists:certificate_templates,id',
             'metadata'                => 'nullable|array',
         ];

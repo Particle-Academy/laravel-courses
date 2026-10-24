@@ -55,6 +55,11 @@ class Enrollment extends Model
         return $this->hasMany(TestAttempt::class);
     }
 
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class)->orderBy('attended_on');
+    }
+
     public function certificate(): HasOne
     {
         return $this->hasOne(Certificate::class);

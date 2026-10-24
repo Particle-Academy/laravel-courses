@@ -41,6 +41,7 @@ class EnrollmentResource extends JsonResource
             'lesson_completions' => LessonCompletionResource::collection(
                 $this->whenLoaded('lessonCompletions')
             ),
+            'attendances'     => AttendanceResource::collection($this->whenLoaded('attendances')),
             'test_attempts'   => TestAttemptResource::collection($this->whenLoaded('testAttempts')),
             'certificate'     => new CertificateResource($this->whenLoaded('certificate')),
             'metadata'        => $this->metadata,

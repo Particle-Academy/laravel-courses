@@ -10,6 +10,65 @@ upgrading.
 
 ## [Unreleased]
 
+## 0.3.0 — 2026-10-24
+
+In-person courses can now be tracked to completion. Until now an `in_person`
+course had no lessons, so its progress sat at 0% forever and the only way to
+finish it was the admin short-circuit.
+
+### Security
+
+- **BREAKING — a learner can no longer self-enrol in a priced course.**
+  `POST enrollments` enrolled anyone in anything, so a host that put a
+  checkout in front of a course could be walked around with one request. The
+  new `GatesSelfEnrollment` contract is asked before a new self-enrolment; its
+  default, `FreeEnrollmentOnly`, admits only targets whose `price` is null or
+  zero. An enrollment that already exists is returned without asking.
+
+  **What you must do:** if you sell courses, create the enrollment yourself
+  once payment confirms (`EnrollmentService::enroll()`, which this gate does
+  not govern) — that is the intended path. If learners should self-enrol in
+  priced courses for some other reason (a membership, say), bind your own
+  `GatesSelfEnrollment`.
+
+### Added
+
+- **Attendance.** A new `attendances` table: one row per session attended in
+  person, with a date and the hours. `ProgressService::recordAttendance()`
+  records one, dispatches `AttendanceRecorded`, and completes the enrollment
+  once the required hours are reached — the same way passing the last test
+  does.
+- **`courses.attendance_hours`** — the in-person hours a learner must attend.
+  `Course::requiredAttendanceHours()` resolves it: on an `in_person` course,
+  null means "all of `hours`"; on a `hybrid` course only an explicit value
+  counts, because there `hours` is the whole course.
+- `summary()` gains `hours_required`, `hours_attended` and `hours_percent`.
+- Admin-gated routes: `GET|POST enrollments/{enrollment}/attendances` and
+  `DELETE enrollments/{enrollment}/attendances/{attendance}`. A learner cannot
+  record their own hours.
+
+### Changed
+
+- **BREAKING — an `in_person` course's lessons and tests no longer count
+  toward progress.** They used to. Online material counts only on `online` and
+  `hybrid` courses, which is what lets a course be sold in person first and
+  have its online material authored later: drafting lessons on it no longer
+  strands everyone already enrolled.
+
+  **What you must do:** if you have an `in_person` course whose lessons are
+  meant to be completed, switch it to `hybrid`.
+
+- `overall_percent` averages the online half and the attendance half when an
+  enrollment has both (the units differ). Online-only enrollments are
+  calculated exactly as before.
+
+### Unchanged on purpose
+
+- Deleting an attendance row does not reopen a completed enrollment. A
+  certificate may already be out; withdrawing it is a revocation.
+- An in-person course with no hours set never completes by itself — nothing to
+  reach is not the same as reaching it. The admin completion still covers it.
+
 ## 0.2.0 — 2026-08-07
 
 ### Changed

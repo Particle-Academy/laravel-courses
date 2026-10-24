@@ -6,6 +6,7 @@ namespace ParticleAcademy\LaravelCourses\Tests\Feature;
 
 use Illuminate\Http\Request;
 use ParticleAcademy\LaravelCourses\Contracts\AuthorizesCourseAdmin;
+use ParticleAcademy\LaravelCourses\Contracts\GatesSelfEnrollment;
 use ParticleAcademy\LaravelCourses\Models\Certificate;
 use ParticleAcademy\LaravelCourses\Models\Course;
 use ParticleAcademy\LaravelCourses\Models\Curriculum;
@@ -86,6 +87,8 @@ class AuthorizationTest extends TestCase
     {
         $course = Course::factory()->create(['slug' => 'c']);
         Lesson::factory()->create(['course_id' => $course->id, 'slug' => 'l']);
+        $enrollment = $this->app->make(EnrollmentService::class)->enroll($this->learner()->id, $course);
+        $attendance = $enrollment->attendances()->create(['attended_on' => now(), 'hours' => 1]);
 
         // A table rather than one case per route: the risk is a NEW write route
         // being added outside the gated group, and a list is what makes that
@@ -100,6 +103,11 @@ class AuthorizationTest extends TestCase
             ['deleteJson', 'api/courses/courses/c'],
             ['deleteJson', 'api/courses/courses/c/lessons/l'],
             ['postJson',   'api/courses/admin/completions'],
+            // A learner recording their own seat time is self-certification by
+            // another route, so attendance reads AND writes are admin-only.
+            ['getJson',    "api/courses/enrollments/{$enrollment->id}/attendances"],
+            ['postJson',   "api/courses/enrollments/{$enrollment->id}/attendances"],
+            ['deleteJson', "api/courses/enrollments/{$enrollment->id}/attendances/{$attendance->id}"],
         ];
 
         foreach ($writes as [$verb, $uri]) {
@@ -201,5 +209,62 @@ class AuthorizationTest extends TestCase
             "api/courses/enrollments/{$enrollment->id}/lessons/{$lesson->id}/complete",
             ['user_id' => $other->id],
         )->assertForbidden();
+    }
+
+    // ── Self-enrolment is for free things ────────────────────────────────
+
+    public function test_a_learner_cannot_self_enrol_in_a_priced_course(): void
+    {
+        Course::factory()->create(['slug' => 'paid', 'price' => 29]);
+
+        // A checkout in front of a course is worthless if the API beside it
+        // enrols anyone who asks.
+        $this->actingAs($this->learner())
+            ->postJson('api/courses/enrollments', ['target_kind' => 'course', 'target_slug' => 'paid'])
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('enrollments', 0);
+    }
+
+    public function test_a_learner_can_self_enrol_in_a_free_course(): void
+    {
+        Course::factory()->create(['slug' => 'free', 'price' => null]);
+        Course::factory()->create(['slug' => 'zero', 'price' => 0]);
+
+        $user = $this->learner();
+        foreach (['free', 'zero'] as $slug) {
+            $this->actingAs($user)
+                ->postJson('api/courses/enrollments', ['target_kind' => 'course', 'target_slug' => $slug])
+                ->assertSuccessful();
+        }
+
+        $this->assertDatabaseCount('enrollments', 2);
+    }
+
+    public function test_an_existing_enrollment_in_a_priced_course_is_returned_not_refused(): void
+    {
+        $user = $this->learner();
+        $course = Course::factory()->create(['slug' => 'bought', 'price' => 29]);
+        // Created server-side after payment, the way a host is meant to.
+        $this->app->make(EnrollmentService::class)->enroll($user->id, $course);
+
+        $this->actingAs($user)
+            ->postJson('api/courses/enrollments', ['target_kind' => 'course', 'target_slug' => 'bought'])
+            ->assertSuccessful();
+    }
+
+    public function test_a_host_binding_can_admit_priced_enrolment(): void
+    {
+        $this->app->bind(GatesSelfEnrollment::class, fn () => new class implements GatesSelfEnrollment {
+            public function allows(Request $request, int|string $userId, Curriculum|Course $target): bool
+            {
+                return true;
+            }
+        });
+        Course::factory()->create(['slug' => 'members', 'price' => 29]);
+
+        $this->actingAs($this->learner())
+            ->postJson('api/courses/enrollments', ['target_kind' => 'course', 'target_slug' => 'members'])
+            ->assertSuccessful();
     }
 }

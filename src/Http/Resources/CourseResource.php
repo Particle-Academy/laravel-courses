@@ -27,6 +27,8 @@ class CourseResource extends JsonResource
             'highlights'        => $this->highlights,
             'estimated_minutes' => $this->estimated_minutes,
             'hours'             => $this->hours !== null ? (float) $this->hours : null,
+            'attendance_hours'  => $this->attendance_hours !== null ? (float) $this->attendance_hours : null,
+            'required_attendance_hours' => $this->requiredAttendanceHours(),
             'metadata'          => $this->metadata,
             'modules'           => ModuleResource::collection($this->whenLoaded('modules')),
             'lessons'           => LessonResource::collection($this->whenLoaded('lessons')),

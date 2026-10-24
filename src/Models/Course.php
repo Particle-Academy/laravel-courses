@@ -28,6 +28,7 @@ class Course extends Model
         'sort_order'         => 'integer',
         'estimated_minutes'  => 'integer',
         'hours'              => 'decimal:2',
+        'attendance_hours'   => 'decimal:2',
         'price'              => 'decimal:2',
         'highlights'         => AsArrayObject::class,
         'metadata'           => AsArrayObject::class,
@@ -41,6 +42,27 @@ class Course extends Model
     public function isInPerson(): bool
     {
         return ($this->delivery_mode ?? DeliveryMode::Online)->isInPerson();
+    }
+
+    /**
+     * In-person hours a learner must attend to complete this course.
+     *
+     * Only an in-person component is tracked: an online course needs none. On
+     * an in_person course `hours` IS the seat time, so it is the fallback; on a
+     * hybrid course `hours` is the whole course, online part included, so only
+     * an explicit `attendance_hours` counts. Zero means attendance is not
+     * tracked for this course.
+     */
+    public function requiredAttendanceHours(): float
+    {
+        if (! $this->isInPerson()) {
+            return 0.0;
+        }
+
+        $hours = $this->attendance_hours
+            ?? ($this->delivery_mode === DeliveryMode::InPerson ? $this->hours : null);
+
+        return max(0.0, (float) $hours);
     }
 
     public function curriculums(): BelongsToMany

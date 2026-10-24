@@ -7,7 +7,9 @@ namespace ParticleAcademy\LaravelCourses;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use ParticleAcademy\LaravelCourses\Contracts\AuthorizesCourseAdmin;
+use ParticleAcademy\LaravelCourses\Contracts\GatesSelfEnrollment;
 use ParticleAcademy\LaravelCourses\Support\DenyAllCourseAdmin;
+use ParticleAcademy\LaravelCourses\Support\FreeEnrollmentOnly;
 use ParticleAcademy\LaravelCourses\Services\CertificateService;
 use ParticleAcademy\LaravelCourses\Services\EnrollmentService;
 use ParticleAcademy\LaravelCourses\Services\ProgressService;
@@ -29,6 +31,10 @@ class CoursesServiceProvider extends ServiceProvider
         // Deny-by-default. A host binds its own rule to switch authoring on;
         // until it does, the write routes are inert rather than open.
         $this->app->bindIf(AuthorizesCourseAdmin::class, DenyAllCourseAdmin::class);
+
+        // Same idea for money: a learner may enrol themselves in free things
+        // only, until a host says otherwise.
+        $this->app->bindIf(GatesSelfEnrollment::class, FreeEnrollmentOnly::class);
     }
 
     public function boot(): void

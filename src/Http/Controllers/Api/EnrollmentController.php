@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\ValidationException;
+use ParticleAcademy\LaravelCourses\Contracts\GatesSelfEnrollment;
 use ParticleAcademy\LaravelCourses\Http\Resources\EnrollmentResource;
 use ParticleAcademy\LaravelCourses\Models\Course;
 use ParticleAcademy\LaravelCourses\Models\Curriculum;
@@ -22,6 +23,7 @@ class EnrollmentController extends Controller
         private readonly EnrollmentService $enrollments,
         private readonly ProgressService $progress,
         private readonly LearnerResolver $learner,
+        private readonly GatesSelfEnrollment $gate,
     ) {
     }
 
@@ -66,6 +68,18 @@ class EnrollmentController extends Controller
         $userId = $this->learner->resolve($request);
 
         $target = $this->resolveTarget($data);
+
+        $alreadyEnrolled = Enrollment::query()
+            ->where('user_id', $userId)
+            ->where('enrollable_type', $target::class)
+            ->where('enrollable_id', $target->getKey())
+            ->exists();
+
+        abort_unless(
+            $alreadyEnrolled || $this->gate->allows($request, $userId, $target),
+            403,
+            'Enrollment in this '.($target instanceof Curriculum ? 'curriculum' : 'course').' must be purchased.',
+        );
 
         $enrollment = $this->enrollments->enroll($userId, $target, $data['metadata'] ?? []);
 

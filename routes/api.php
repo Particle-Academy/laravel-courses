@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use ParticleAcademy\LaravelCourses\Http\Middleware\AuthorizeCourseAdmin;
 use ParticleAcademy\LaravelCourses\Http\Controllers\Api\AdminCompletionController;
+use ParticleAcademy\LaravelCourses\Http\Controllers\Api\AttendanceController;
 use ParticleAcademy\LaravelCourses\Http\Controllers\Api\CertificateController;
 use ParticleAcademy\LaravelCourses\Http\Controllers\Api\CertificateTemplateController;
 use ParticleAcademy\LaravelCourses\Http\Controllers\Api\CourseController;
@@ -107,6 +108,11 @@ Route::get('certificates/{certificate}/pdf', [CertificateController::class, 'pdf
 */
 Route::middleware(AuthorizeCourseAdmin::class)->group(function (): void {
     Route::post('admin/completions', [AdminCompletionController::class, 'store']);
+    // Hours attended in person count toward completion, so recording them is
+    // as consequential as issuing the certificate they lead to.
+    Route::get('enrollments/{enrollment}/attendances', [AttendanceController::class, 'index']);
+    Route::post('enrollments/{enrollment}/attendances', [AttendanceController::class, 'store']);
+    Route::delete('enrollments/{enrollment}/attendances/{attendance}', [AttendanceController::class, 'destroy']);
     Route::post('certificates/{certificate}/revoke', [CertificateController::class, 'revoke']);
 });
 
