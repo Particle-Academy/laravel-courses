@@ -153,8 +153,17 @@ Variables available to either mode:
 
 ```
 recipient, recipientName, programName, programDetail, issuedAt, issuer,
-verificationCode, certificate, enrollment
+verificationCode, certificateNumber, certificate, enrollment
 ```
+
+An inline template never sees the Eloquent models. `certificate`, `enrollment`
+and `recipient` are reduced to the attributes listed in
+`laravel-courses.certificates.template_attributes` (by default
+`certificate.verification_code`, `certificate.certificate_number`,
+`certificate.issued_at`, `enrollment.status`, `enrollment.started_at`,
+`enrollment.completed_at`, `recipient.name`, `recipient.email`); any other
+dotted path renders empty. A Blade view still receives the models — its source
+is code on the host's disk, not text stored through the API.
 
 The default template ships at `resources/views/certificates/default.blade.php`. Publish + edit it to brand certificates.
 

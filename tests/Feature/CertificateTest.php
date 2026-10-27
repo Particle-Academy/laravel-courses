@@ -172,6 +172,72 @@ class CertificateTest extends TestCase
         );
     }
 
+    /**
+     * An inline template is text an admin stores through the API, and it was
+     * resolved with data_get over the live Eloquent models — so any column or
+     * loaded relation on the learner's user row could be printed into a PDF.
+     */
+    public function test_an_inline_template_cannot_read_the_recipients_secrets(): void
+    {
+        $user = $this->learner();
+        $user->forceFill([
+            'password'          => 'HASHED-PASSWORD-SENTINEL',
+            'remember_token'    => 'REMEMBER-TOKEN-SENTINEL',
+            'two_factor_secret' => 'TWO-FACTOR-SENTINEL',
+        ])->save();
+
+        $enrollment = $this->app->make(EnrollmentService::class)
+            ->enroll($user->id, Course::factory()->create(['title' => 'COURSE-TITLE-SENTINEL']));
+
+        $template = CertificateTemplate::factory()->create([
+            'html' => '<p>[{{ recipient.password }}]</p>'
+                . '<p>[{{ recipient.remember_token }}]</p>'
+                . '<p>[{{ recipient.two_factor_secret }}]</p>'
+                . '<p>[{{ enrollment.enrollable.title }}]</p>'
+                . '<p>[{{ certificate.enrollment.user_id }}]</p>'
+                . '<p>[{{ certificate.notes }}]</p>',
+        ]);
+        $certificate = $this->certificates()->issue($enrollment, $template, notes: 'INTERNAL-NOTE-SENTINEL');
+
+        $html = $this->certificates()->renderHtml($certificate);
+
+        $this->assertStringNotContainsString('HASHED-PASSWORD-SENTINEL', $html);
+        $this->assertStringNotContainsString('REMEMBER-TOKEN-SENTINEL', $html);
+        $this->assertStringNotContainsString('TWO-FACTOR-SENTINEL', $html);
+        $this->assertStringNotContainsString('COURSE-TITLE-SENTINEL', $html);
+        $this->assertStringNotContainsString('INTERNAL-NOTE-SENTINEL', $html);
+        // Same fail-soft as an unknown placeholder: blank, not an error.
+        $this->assertSame(6, substr_count($html, '[]'));
+    }
+
+    public function test_the_allowlisted_model_paths_still_render(): void
+    {
+        $template = CertificateTemplate::factory()->create([
+            'html' => '<p>{{ certificate.verification_code }}|{{ certificate.certificate_number }}'
+                . '|{{ recipient.name }}|{{ recipient.email }}</p>',
+        ]);
+        $certificate = $this->certificates()->issue($this->enrolment(), $template);
+
+        $html = $this->certificates()->renderHtml($certificate);
+
+        $this->assertStringContainsString(
+            "{$certificate->verification_code}|{$certificate->certificate_number}|Ada|ada@example.test",
+            $html,
+        );
+    }
+
+    public function test_the_template_allowlist_is_configurable(): void
+    {
+        config()->set('laravel-courses.certificates.template_attributes.recipient', ['name']);
+
+        $template = CertificateTemplate::factory()->create([
+            'html' => '<p>[{{ recipient.name }}][{{ recipient.email }}]</p>',
+        ]);
+        $certificate = $this->certificates()->issue($this->enrolment(), $template);
+
+        $this->assertStringContainsString('[Ada][]', $this->certificates()->renderHtml($certificate));
+    }
+
     public function test_an_unknown_placeholder_renders_empty_rather_than_throwing(): void
     {
         $template = CertificateTemplate::factory()->create([

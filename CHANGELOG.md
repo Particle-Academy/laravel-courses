@@ -10,6 +10,27 @@ upgrading.
 
 ## [Unreleased]
 
+### Security
+
+- **An inline certificate template can no longer read arbitrary model
+  attributes.** Placeholders were resolved with `data_get` over the live
+  `certificate`, `enrollment` and `recipient` models, so a template stored
+  through the admin API could print `{{ recipient.password }}`,
+  `{{ recipient.remember_token }}`, a two-factor secret, internal certificate
+  `notes`, or anything on a loaded relation into the PDF. Those models are now
+  reduced to an allowlist before substitution — new config key
+  `laravel-courses.certificates.template_attributes`, defaulting to
+  `certificate.{verification_code,certificate_number,issued_at}`,
+  `enrollment.{status,started_at,completed_at}` and `recipient.{name,email}`.
+  Anything else renders empty, exactly like an unknown placeholder.
+
+  **What you must do:** nothing, unless an inline template reads a model
+  attribute outside that list — it will now render blank. Add the attribute to
+  `template_attributes` in your published config (never a relation name). The
+  top-level variables (`recipientName`, `programName`, `verificationCode`,
+  `certificateNumber`, ...) are unchanged. Blade-view templates are not affected
+  and still receive the models.
+
 ## 0.3.0 — 2026-10-24
 
 In-person courses can now be tracked to completion. Until now an `in_person`

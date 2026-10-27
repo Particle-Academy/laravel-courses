@@ -45,6 +45,11 @@ abstract class TestCase extends Orchestra
             $table->id();
             $table->string('name');
             $table->string('email');
+            // Columns every real host user table carries. The certificate
+            // template tests need them present to prove they are NOT reachable.
+            $table->string('password')->nullable();
+            $table->string('remember_token')->nullable();
+            $table->text('two_factor_secret')->nullable();
             $table->timestamps();
         });
     }

@@ -95,7 +95,7 @@ class CertificateService
         $template  = $certificate->template;
 
         if ($template?->html) {
-            return $this->renderInlineTemplate($template->html, $template->css, $variables);
+            return $this->renderInlineTemplate($template->html, $template->css, $this->inlineTemplateVariables($variables));
         }
 
         $view = $template?->blade_view ?? config('laravel-courses.certificates.default_view');
@@ -187,6 +187,47 @@ class CertificateService
         }
 
         return CertificateTemplate::default();
+    }
+
+    /**
+     * Reduce every object in the variables to an allowlist of its attributes.
+     *
+     * An inline template is text stored through the admin API, and its
+     * placeholders are resolved with data_get. Handed the live models, it
+     * could print any column or loaded relation — the learner's password
+     * hash, remember token, two-factor secret — into a PDF. So the models
+     * never reach it: only `laravel-courses.certificates.template_attributes`
+     * does, and an object with no allowlist entry is dropped entirely.
+     *
+     * Values are passed through unchanged, so an allowlisted path renders
+     * exactly as it did before.
+     *
+     * @param  array<string,mixed>  $variables
+     * @return array<string,mixed>
+     */
+    private function inlineTemplateVariables(array $variables): array
+    {
+        /** @var array<string,list<string>> $allowlist */
+        $allowlist = (array) config('laravel-courses.certificates.template_attributes', [
+            'certificate' => ['verification_code', 'certificate_number', 'issued_at'],
+            'enrollment'  => ['status', 'started_at', 'completed_at'],
+            'recipient'   => ['name', 'email'],
+        ]);
+
+        foreach ($variables as $key => $value) {
+            if (! is_object($value) && ! is_array($value)) {
+                continue;
+            }
+
+            $attributes = [];
+            foreach ((array) ($allowlist[$key] ?? []) as $attribute) {
+                $attributes[(string) $attribute] = data_get($value, (string) $attribute);
+            }
+
+            $variables[$key] = $attributes;
+        }
+
+        return $variables;
     }
 
     /**

@@ -80,5 +80,22 @@ return [
         'number_prefix'        => env('LARAVEL_COURSES_CERT_PREFIX', 'CERT'),
         'number_format'        => '{prefix}-{year}-{random}',
         'number_random_length' => 6,
+
+        // Attributes an INLINE template (`html` on a CertificateTemplate row)
+        // may read through a dotted placeholder such as
+        // `{{ recipient.email }}`. Inline templates are text stored through
+        // the admin API, so they never see the live models: each one is
+        // reduced to exactly these attributes before substitution. Anything
+        // else — `recipient.password`, `recipient.remember_token`, a loaded
+        // relation — renders empty, like any unknown placeholder.
+        //
+        // Widen per key if your template needs more, but every name you add
+        // is printable into a PDF by anyone who can edit a template. Never
+        // list a relation name, or the whole related model comes with it.
+        'template_attributes' => [
+            'certificate' => ['verification_code', 'certificate_number', 'issued_at'],
+            'enrollment'  => ['status', 'started_at', 'completed_at'],
+            'recipient'   => ['name', 'email'],
+        ],
     ],
 ];
