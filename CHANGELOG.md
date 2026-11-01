@@ -10,6 +10,11 @@ upgrading.
 
 ## [Unreleased]
 
+### Changed
+- `composer test` now runs the suite (`scripts.test` → `phpunit`). The release
+  preflight reads that script, and without it a release ran no checks at all,
+  even though CI calls `vendor/bin/phpunit` directly. Consumer action: none.
+
 ## 0.4.0 — 2026-11-01
 
 Certificates are written by our own PDF writer,
