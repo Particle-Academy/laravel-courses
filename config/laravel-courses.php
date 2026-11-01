@@ -57,16 +57,35 @@ return [
     |--------------------------------------------------------------------------
     */
     'certificates' => [
-        // Blade view used when a CertificateTemplate row does not specify one.
-        'default_view' => 'laravel-courses::certificates.default',
+        // PDFs are written by particle-academy/fine-print from a
+        // fancy-template document (JSON, not HTML). The template used when a
+        // CertificateTemplate row has no `document`: null = the packaged
+        // resources/certificates/default.fine-print.json, or a path to your
+        // own envelope ({"fancyTemplate": 1, "writer": "fine-print", ...}).
+        'default_template' => null,
+
+        // Paper + orientation for the DEFAULT template only; a template's own
+        // `document.page` decides for itself. fine-print draws letter, legal
+        // and a4, in portrait or landscape.
+        'paper'       => 'letter',
+        'orientation' => 'landscape',
+
+        // fine-print's `fonts` option: TrueType families to embed, e.g.
+        // ['Times' => ['regular' => '/path/Serif.ttf', 'bold' => ...]].
+        // null = fine-print's bundled Tinos (as Times) and Cousine (as
+        // Courier), which print Latin, Greek and Cyrillic names exactly. The
+        // unembedded standard fonts would print anything outside
+        // Windows-1252 as "?".
+        'fonts' => null,
 
         // Where issued certificate PDFs are persisted. Filesystem disk + path.
         'storage_disk' => env('LARAVEL_COURSES_CERT_DISK', 'local'),
         'storage_path' => 'certificates',
 
-        // dompdf paper + orientation.
-        'paper'       => 'letter',
-        'orientation' => 'landscape',
+        // DEPRECATED, for renderHtml() only (removed in the next minor).
+        // Blade view used when a CertificateTemplate row does not specify one.
+        // It no longer affects the PDF.
+        'default_view' => 'laravel-courses::certificates.default',
 
         // Verification code format: number of bytes (output is hex, so 2x chars).
         // verification_code is the URL-safe random token used in the public
@@ -81,6 +100,8 @@ return [
         'number_format'        => '{prefix}-{year}-{random}',
         'number_random_length' => 6,
 
+        // DEPRECATED with renderHtml(): the PDF's template data is scalars
+        // only (CertificateService::templateData()) and never sees a model.
         // Attributes an INLINE template (`html` on a CertificateTemplate row)
         // may read through a dotted placeholder such as
         // `{{ recipient.email }}`. Inline templates are text stored through

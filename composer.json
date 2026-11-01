@@ -5,13 +5,14 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
-        "barryvdh/laravel-dompdf": "^3.0",
         "illuminate/contracts": "^13.0",
         "illuminate/database": "^13.0",
         "illuminate/http": "^13.0",
         "illuminate/routing": "^13.0",
         "illuminate/support": "^13.0",
-        "illuminate/validation": "^13.0"
+        "illuminate/validation": "^13.0",
+        "particle-academy/fine-print": ">=0.3.0 <2.0",
+        "particle-academy/fancy-template": ">=0.3.0 <2.0"
     },
     "require-dev": {
         "orchestra/testbench": "^11.0",

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace ParticleAcademy\LaravelCourses\Services;
 
-use Barryvdh\DomPDF\Facade\Pdf;
+use FinePrint\Agent;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Filesystem\FilesystemManager;
+use Illuminate\Support\Facades\Log;
+use ParticleAcademy\LaravelCourses\Certificates\CertificateDocument;
 use ParticleAcademy\LaravelCourses\Events\CertificateIssued;
 use ParticleAcademy\LaravelCourses\Events\CertificateRevoked;
 use ParticleAcademy\LaravelCourses\Models\Certificate;
@@ -88,6 +90,10 @@ class CertificateService
 
     /**
      * Render certificate HTML using the linked (or default) template.
+     *
+     * @deprecated 0.4.0 The PDF no longer comes from HTML; see pdf() and
+     *             document(). Kept for one minor so HTML previews keep working,
+     *             then removed with the html/css/blade_view columns.
      */
     public function renderHtml(Certificate $certificate): string
     {
@@ -104,18 +110,81 @@ class CertificateService
     }
 
     /**
-     * Render certificate as a PDF binary string.
+     * Render certificate as a PDF binary string, written by fine-print.
      */
     public function pdf(Certificate $certificate): string
     {
-        $html = $this->renderHtml($certificate);
+        $fonts = config('laravel-courses.certificates.fonts') ?? CertificateDocument::fonts();
 
-        return Pdf::loadHTML($html)
-            ->setPaper(
-                config('laravel-courses.certificates.paper', 'letter'),
-                config('laravel-courses.certificates.orientation', 'landscape'),
-            )
-            ->output();
+        return Agent::toBytes($this->document($certificate), ['fonts' => $fonts]);
+    }
+
+    /**
+     * The certificate as a fine-print document (JSON), before it is written.
+     *
+     * The linked template's `document` decides the design. A template that
+     * only has html/blade_view predates fine-print and cannot be drawn, so it
+     * gets the default certificate and a logged warning rather than a failed
+     * download.
+     *
+     * @return array<string,mixed>
+     */
+    public function document(Certificate $certificate): array
+    {
+        $template = $certificate->template;
+        $data     = $this->templateData($certificate);
+        $builder  = new CertificateDocument();
+
+        if (is_array($template?->document)) {
+            return $builder->build($template->document, $data);
+        }
+
+        if ($template && ($template->html || $template->blade_view)) {
+            Log::warning(sprintf(
+                'laravel-courses: certificate template %d has no fine-print `document`; its html/blade_view is no longer drawn, so the default certificate was used.',
+                $template->getKey(),
+            ));
+        }
+
+        $path = config('laravel-courses.certificates.default_template');
+
+        return $builder->build(
+            CertificateDocument::defaultTemplate(is_string($path) && $path !== '' ? $path : null),
+            $data,
+            (string) config('laravel-courses.certificates.paper', 'letter'),
+            (string) config('laravel-courses.certificates.orientation', 'landscape'),
+        );
+    }
+
+    /**
+     * The data a certificate template is filled with: scalars only.
+     *
+     * Templates are text an admin stores through the API, so no model ever
+     * reaches one. A value that is absent is left out, so the template's
+     * declared default applies; `issuedAt` is ISO-8601 for the template's
+     * `date` filter.
+     *
+     * @return array<string,string>
+     */
+    public function templateData(Certificate $certificate): array
+    {
+        $variables = $this->buildVariables($certificate);
+
+        $data = [
+            'title'             => $variables['title'],
+            'recipientName'     => $variables['recipientName'],
+            'programName'       => $variables['programName'],
+            'programDetail'     => $variables['programDetail'],
+            'issuedAt'          => $certificate->issued_at?->format('Y-m-d'),
+            'issuer'            => $variables['issuer'],
+            'verificationCode'  => $variables['verificationCode'],
+            'certificateNumber' => $variables['certificateNumber'],
+        ];
+
+        return array_map('strval', array_filter(
+            $data,
+            static fn (mixed $value): bool => is_scalar($value) && (string) $value !== '',
+        ));
     }
 
     /**
@@ -141,7 +210,8 @@ class CertificateService
     }
 
     /**
-     * Variables made available to the certificate template.
+     * Variables made available to the (deprecated) HTML template, models
+     * included. The PDF uses templateData(), which carries no model.
      *
      * @return array<string,mixed>
      */

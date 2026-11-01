@@ -21,6 +21,7 @@ class CertificateTemplateResource extends JsonResource
             'blade_view'       => $this->blade_view,
             'html'             => $this->html,
             'css'              => $this->css,
+            'document'         => $this->document,
             'is_default'       => $this->is_default,
             'variables_schema' => $this->variables_schema,
             'created_at'       => $this->created_at,

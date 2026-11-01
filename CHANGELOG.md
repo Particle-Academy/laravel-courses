@@ -10,6 +10,87 @@ upgrading.
 
 ## [Unreleased]
 
+## 0.4.0 — 2026-11-01
+
+Certificates are written by our own PDF writer,
+[`particle-academy/fine-print`](https://github.com/Particle-Academy/fine-print),
+and `barryvdh/laravel-dompdf` is gone. dompdf's last release (v3.1.2,
+2026-02-21) is past the suite's three-month freshness bar for third-party
+code. fine-print is pure PHP with no runtime dependencies and never writes
+active content.
+
+### Added
+
+- `certificate_templates.document` (JSON): a fancy-template envelope for the
+  fine-print writer. The admin API accepts it on create and update, checks it
+  with `Template::inspect()` and answers 422 with the paths of every problem,
+  so a broken template fails when it is saved, not when a learner downloads.
+  `CertificateTemplateResource` returns it.
+- `CertificateService::document()` (the fine-print JSON before it is written)
+  and `templateData()`.
+- `Certificates\CertificateDocument`: the pure builder (template + data in,
+  document out), with `defaultTemplate()` and `fonts()`.
+- Config: `certificates.default_template`, `certificates.fonts`.
+
+### Changed
+
+- **BREAKING — certificate PDFs are drawn from a JSON document, not HTML.**
+  `CertificateService::pdf()` keeps its signature (a certificate in, PDF bytes
+  out) and `storePdf()` and `GET certificates/{id}/pdf` are unchanged, but the
+  design now comes from a [`fancy-template`](https://github.com/Particle-Academy/fancy-template)
+  envelope: the template's new `document` column, else
+  `certificates.default_template`, else the packaged
+  `resources/certificates/default.fine-print.json`. A template that has only
+  `html` / `css` / `blade_view` can no longer be drawn: its PDF is the default
+  certificate, and a warning is logged naming the template.
+
+  **What you must do:**
+  - **No custom template** (you use the shipped certificate): nothing. Same
+    layout, letter landscape, cream ground, gold double frame, and now the
+    certificate number is printed and the frame fits the page.
+  - **A published Blade view** (`resources/views/vendor/laravel-courses`) or a
+    template row with `html` / `blade_view`: rebuild the design as a
+    fine-print document and store it in that row's `document` (or point
+    `certificates.default_template` at a file). Start from
+    `resources/certificates/default.fine-print.json`. Then delete the
+    published views; nothing reads them for the PDF.
+  - **Remove** any `config/dompdf.php` and published dompdf assets (fonts in
+    `storage/fonts`) if nothing else in your app uses dompdf, and drop
+    `barryvdh/laravel-dompdf` from your own composer.json unless you require it
+    directly.
+  - **Run `php artisan migrate`** for the new `certificate_templates.document`
+    column.
+  - **`certificates.paper`** now accepts only `letter`, `legal` or `a4`
+    (portrait or landscape); anything else throws an `InvalidArgumentException`
+    naming the value. It applies to the default template only; a template's
+    own `document.page` decides for itself.
+- Certificates embed fine-print's bundled Tinos (as `Times`) and Cousine (as
+  `Courier`) by default, so a learner's name in Polish, Greek or Cyrillic
+  prints exactly instead of as `?`. Set `certificates.fonts` to embed your own.
+  A certificate PDF is now about 50 KB, from about 2 KB, because the font
+  subsets travel with it.
+- Template data is scalars only (`CertificateService::templateData()`): no
+  model reaches a template, so `template_attributes` has nothing to guard for
+  the PDF.
+- Requires `particle-academy/fine-print` `>=0.3.0 <2.0` and
+  `particle-academy/fancy-template` `>=0.3.0 <2.0` (which brings
+  `particle-academy/fancy-expr` and needs `ext-zip`). All first-party.
+
+### Deprecated
+
+- `CertificateService::renderHtml()` and `buildVariables()`, the
+  `certificate_templates.html` / `css` / `blade_view` columns, the packaged
+  Blade view and the `laravel-courses-views` publish tag, and the
+  `certificates.default_view` and `certificates.template_attributes` config
+  keys. They still work for HTML previews and no longer affect the PDF. They
+  are removed in the next minor.
+
+### Removed
+
+- `barryvdh/laravel-dompdf` (and with it `dompdf/dompdf`,
+  `dompdf/php-font-lib`, `dompdf/php-svg-lib`, `masterminds/html5`,
+  `sabberworm/php-css-parser` and `thecodingmachine/safe`).
+
 ### Security
 
 - **An inline certificate template can no longer read arbitrary model

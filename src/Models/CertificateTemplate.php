@@ -19,6 +19,7 @@ class CertificateTemplate extends Model
 
     protected $casts = [
         'is_default'       => 'boolean',
+        'document'         => 'array',
         'variables_schema' => AsArrayObject::class,
     ];
 

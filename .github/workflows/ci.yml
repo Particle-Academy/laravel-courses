@@ -99,7 +99,8 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
-          extensions: mbstring, pdo_sqlite
+          # zip: fancy-template; zlib, ctype, json: fine-print.
+          extensions: mbstring, pdo_sqlite, zip, zlib, ctype, json
           coverage: none
         env:
           update: true # latest patch, not the runner's preinstalled one

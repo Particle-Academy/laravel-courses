@@ -88,11 +88,36 @@ Three ways to break it again, each covered by a test:
 - **Curriculum fan-out.** A curriculum has to see module/lesson tests across
   *all* its courses, not just the first.
 
+## Certificates are fine-print documents, not HTML
+
+`CertificateService::pdf()` = `FinePrint\Agent::toBytes(document(), ['fonts' => ...])`.
+`document()` picks the template (the row's `document`, else
+`certificates.default_template`, else the packaged
+`resources/certificates/default.fine-print.json`) and hands it to
+`Certificates\CertificateDocument::build()`, which is pure: fancy-template
+envelope + scalar data in, fine-print JSON out.
+
+- **Templates get scalars, never models** (`templateData()`). That is what
+  makes a template stored through the admin API safe; don't pass a model or a
+  relation in, however convenient.
+- **A template is inspected on SAVE** (`CertificateTemplateController`,
+  `Template::inspect()`, 422 with paths). Don't move that check to render
+  time: a broken template would then fail at a learner's download.
+- **Fonts default to fine-print's bundled Tinos/Cousine, registered as
+  `Times`/`Courier`**, so the packaged template embeds them. Dropping the
+  `fonts` option prints non-Windows-1252 names as `?`;
+  `test_a_name_outside_windows_1252_prints_exactly` is red if you do.
+- `resources/certificates/default.fine-print.json` is fancy-template's
+  `examples/certificate.fine-print.json` (only its `description` differs),
+  whose golden test reads it back through fine-print. Change both or neither.
+- `renderHtml()`, the Blade view, `html`/`css`/`blade_view`, `default_view` and
+  `template_attributes` are deprecated (0.4.0) and do not touch the PDF.
+
 ## Testing
 
 ```bash
 composer install
-vendor/bin/phpunit                                   # 75 tests
+vendor/bin/phpunit                                   # 97 tests
 vendor/bin/phpunit --filter AuthorizationTest        # the security contract
 ```
 

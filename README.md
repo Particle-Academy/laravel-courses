@@ -17,7 +17,7 @@ Publish what you want to override:
 
 ```sh
 php artisan vendor:publish --tag=laravel-courses-config       # config/laravel-courses.php
-php artisan vendor:publish --tag=laravel-courses-views        # resources/views/vendor/laravel-courses/
+php artisan vendor:publish --tag=laravel-courses-views        # deprecated: HTML views, no longer used by the PDF
 php artisan vendor:publish --tag=laravel-courses-migrations   # if you need to customize the schema
 ```
 
@@ -37,11 +37,12 @@ php artisan vendor:publish --tag=laravel-courses-migrations   # if you need to c
     'max_attempts'  => null,
 ],
 'certificates' => [
-    'default_view'   => 'laravel-courses::certificates.default',
+    'default_template' => null,                       // null = the packaged certificate
+    'paper'          => 'letter',                     // letter | legal | a4 (default template only)
+    'orientation'    => 'landscape',
+    'fonts'          => null,                         // null = fine-print's bundled Tinos + Cousine
     'storage_disk'   => env('LARAVEL_COURSES_CERT_DISK', 'local'),
     'storage_path'   => 'certificates',
-    'paper'          => 'letter',
-    'orientation'    => 'landscape',
     'number_prefix'  => env('LARAVEL_COURSES_CERT_PREFIX', 'CERT'),
     'number_format'  => '{prefix}-{year}-{random}',
     'number_random_length' => 6,
@@ -144,28 +145,50 @@ Listen from your host app to wire audit logs, broadcasts, notifications:
 
 ## Certificate templates
 
-Two modes per `CertificateTemplate` row:
+Certificate PDFs are written by [`particle-academy/fine-print`](https://github.com/Particle-Academy/fine-print)
+(pure PHP, no active content) from a JSON document, not from HTML. A design is
+a [`fancy-template`](https://github.com/Particle-Academy/fancy-template)
+envelope: a fine-print document with `{{ tokens }}`, plus the variables it
+declares.
 
-- **Blade view**: set `blade_view` (e.g. `vendor.acme.cert`) — that view is rendered with the variables below.
-- **Inline HTML**: set `html` + optional `css` — `{{ var }}` tokens are replaced with sanitized values.
-
-Variables available to either mode:
-
+```json
+{ "fancyTemplate": 1, "writer": "fine-print",
+  "variables": { "recipientName": { "type": "string", "required": true } },
+  "document": { "page": { "size": "letter", "orientation": "landscape" },
+                "blocks": [ { "type": "paragraph", "runs": [ { "text": "{{ recipientName }}" } ] } ] } }
 ```
-recipient, recipientName, programName, programDetail, issuedAt, issuer,
-verificationCode, certificateNumber, certificate, enrollment
-```
 
-An inline template never sees the Eloquent models. `certificate`, `enrollment`
-and `recipient` are reduced to the attributes listed in
-`laravel-courses.certificates.template_attributes` (by default
-`certificate.verification_code`, `certificate.certificate_number`,
-`certificate.issued_at`, `enrollment.status`, `enrollment.started_at`,
-`enrollment.completed_at`, `recipient.name`, `recipient.email`); any other
-dotted path renders empty. A Blade view still receives the models — its source
-is code on the host's disk, not text stored through the API.
+- **Per template:** store the envelope in a `CertificateTemplate`'s `document`.
+  The admin API checks it on save (`Template::inspect()`) and answers 422 with
+  the paths of what is wrong, so a broken template never reaches a learner.
+- **Default:** `resources/certificates/default.fine-print.json` (letter
+  landscape, cream ground, double gold frame). Point
+  `certificates.default_template` at your own file to replace it; `paper` and
+  `orientation` apply to the default only.
+- **Data** (`CertificateService::templateData()`), scalars only, never a model:
 
-The default template ships at `resources/views/certificates/default.blade.php`. Publish + edit it to brand certificates.
+  ```
+  title, recipientName, programName, programDetail, issuedAt (ISO date),
+  issuer, verificationCode, certificateNumber
+  ```
+
+  A value that is absent is left out, so the template's declared `default`
+  applies. Data a template requires and does not get is an error, not a blank.
+- **Fonts:** by default the certificate embeds fine-print's bundled Tinos
+  (registered as `Times`) and Cousine (`Courier`), so names in Polish, Greek or
+  Cyrillic print exactly. Set `certificates.fonts` (fine-print's `fonts` option)
+  to embed your own.
+
+`CertificateService::document()` returns the fine-print JSON before it is
+written, for previews or tests.
+
+### Deprecated: HTML templates
+
+`renderHtml()`, the `html` / `css` / `blade_view` columns, `default_view`,
+`template_attributes` and the `laravel-courses-views` publish tag still work
+for one minor, for HTML previews only. **They no longer affect the PDF**: a
+template with no `document` gets the default certificate, and a warning is
+logged. They are removed in the next minor.
 
 ## Classroom React UX
 
