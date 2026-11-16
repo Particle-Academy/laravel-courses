@@ -14,6 +14,7 @@ upgrading.
 - `composer test` now runs the suite (`scripts.test` → `phpunit`). The release
   preflight reads that script, and without it a release ran no checks at all,
   even though CI calls `vendor/bin/phpunit` directly. Consumer action: none.
+- Rebranded the display name to Fancy Dev Kit (README and package description). Package names, the npm scope, URLs and the `fancy-ui` MCP id are unchanged.
 
 ## 0.4.0 — 2026-11-01
 
