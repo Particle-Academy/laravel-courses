@@ -5,10 +5,10 @@
 Laravel package for selling and serving educational curriculums, courses, tests, and certificates. API-only — bring your own UI (or use the [`@particle-academy/classroom` React kit](#classroom-react-ux) built for it).
 
 <!-- fancy-agents-note:start -->
-> **For agents.** Every Fancy package, this one included, is listed on the
-> Fancy MCP catalog server at `https://ui.particle.academy/mcp` (streamable HTTP, no API key;
-> MCP id `fancy-ui`), with install commands and docs. How an agent installs
-> and uses this package is in [AGENTS.md](https://github.com/Particle-Academy/laravel-courses/blob/main/AGENTS.md).
+> **For agents.** This package is listed on the Fancy MCP catalog server at
+> `https://ui.particle.academy/mcp` (streamable HTTP, no API key; MCP id `fancy-ui`),
+> with install commands and docs, alongside the rest of the kit. How an agent
+> installs and uses this package is in [AGENTS.md](https://github.com/Particle-Academy/laravel-courses/blob/main/AGENTS.md).
 <!-- fancy-agents-note:end -->
 
 ## Install
