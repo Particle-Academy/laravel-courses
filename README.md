@@ -4,6 +4,13 @@
 
 Laravel package for selling and serving educational curriculums, courses, tests, and certificates. API-only — bring your own UI (or use the [`@particle-academy/classroom` React kit](#classroom-react-ux) built for it).
 
+<!-- fancy-agents-note:start -->
+> **For agents.** Every Fancy package, this one included, is listed on the
+> Fancy MCP catalog server at `https://ui.particle.academy/mcp` (streamable HTTP, no API key;
+> MCP id `fancy-ui`), with install commands and docs. How an agent installs
+> and uses this package is in [AGENTS.md](https://github.com/Particle-Academy/laravel-courses/blob/main/AGENTS.md).
+<!-- fancy-agents-note:end -->
+
 ## Install
 
 ```sh
@@ -128,7 +135,7 @@ All routes mount under the configured prefix (default `/api/courses`).
 `LearnerResolver` resolves the learner id for any request, in this order:
 
 1. `$request->user()` (set by the host's auth middleware) — preferred.
-2. `user_id` in the request body or `X-Learner-Id` header — useful for server-to-server callers or tests. Disable with `config('laravel-courses.allow_input_user_id', false)`.
+2. `user_id` in the request body or `X-Learner-Id` header — useful for server-to-server callers or tests. **Off by default**; enable it with `laravel-courses.allow_input_user_id` (`LARAVEL_COURSES_ALLOW_INPUT_USER_ID=true`), which trusts the caller completely.
 
 ## Events
 

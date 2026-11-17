@@ -1,0 +1,141 @@
+# Contributing to particle-academy/laravel-courses
+
+Notes for anyone, human or agent, working ON this package's code. How to USE the
+package is in [AGENTS.md](./AGENTS.md); what it is, is in [README.md](./README.md).
+`CLAUDE.md` is a symlink to this file, so Claude Code reads these notes when it
+works in this repo.
+
+Curriculums, courses, modules, lessons, tests, questions, enrollments, attempts
+and certificates for Laravel. API-only: the host owns the user model and the UI.
+
+The learner-facing React surface is `@particle-academy/classroom`. The authoring
+agent is `particle-academy/teachers-aid`. Neither is required.
+
+## The shape
+
+```
+curriculum ──(curriculum_course)── course ── module ── lesson
+                                     │         │        │
+                                     └─────────┴────────┴── test ── question ── option
+                                                              │
+enrollment ── lesson_completion                          test_attempt ── attempt_answer
+     └──────────────────────────────────────────────────────────────── certificate
+```
+
+- **Enrollment is polymorphic** — a learner enrols in a `Curriculum` *or* a bare
+  `Course`, and the same learner can hold both independently.
+- **A test attaches at any level.** `course_id`, `module_id` and `lesson_id` are
+  each nullable, and all three count toward progress and completion.
+- **Services own the behaviour**, not the models: `EnrollmentService`,
+  `ProgressService`, `ScoringService`, `CertificateService`. Controllers are thin
+  and the services are what a host should call directly.
+
+## Rules
+
+- **Deny by default.** Writes go through `AuthorizesCourseAdmin`, whose shipped
+  binding refuses everyone. A host binds its own rule to switch authoring on.
+  **Never widen this to "allow unless configured"** — it was exactly that once,
+  and an anonymous request could mint a certificate for any user id. Reads and
+  `GET verify/{code}` stay public on purpose.
+- **Self-enrolment is free-only by default.** `GatesSelfEnrollment` is asked
+  before `POST enrollments` creates anything; `FreeEnrollmentOnly` refuses a
+  priced target. A host that sells enrols the buyer itself via
+  `EnrollmentService`, which the gate does not govern. Don't move the gate
+  into `EnrollmentService` — that would block the host's own paid path.
+- **`LearnerResolver` is the only source of learner identity.** Every ownership
+  check compares against it, so a controller must never take a user id straight
+  from the request. `allow_input_user_id` defaults to `false` and turning it on
+  trusts the caller completely.
+- **A certificate must not be issuable without completion.** `CertificateService::issue()`
+  deliberately does NOT check progress — that is the admin short-circuit's job —
+  so the *learner* path gates on `ProgressService::isFullyComplete()` in
+  `CertificateController`. Keep that gate.
+- **Slugs are NOT NULL and unique** on six tables. Bulk authoring must generate
+  them; don't hand-roll `Str::slug()` per caller.
+- **Never change grading silently.** Scoring semantics are covered by tests
+  precisely because a change here retroactively alters who passed.
+
+## In-person courses
+
+`delivery_mode` decides what progress is made of:
+
+| Mode | Counts toward completion |
+|---|---|
+| `online` | lessons + tests |
+| `in_person` | attendance hours only (`attendance_hours`, else `hours`) |
+| `hybrid` | lessons + tests, plus attendance if `attendance_hours` is set |
+
+- **An `in_person` course's lessons are invisible to progress.** That is the
+  feature, not a gap: it is how online material gets authored on a course that
+  is still taught live, without changing anything for its enrollees until the
+  mode is switched.
+- **Attendance is admin-only, reads included.** A learner recording their own
+  seat time is self-certification by another route.
+- Hours and lessons are different units, so `overall_percent` AVERAGES the two
+  halves rather than adding them.
+
+## `testIdsFor()` — read before touching it
+
+`ProgressService::testIdsFor()` once queried `course_id` alone, so quizzes hung
+off a module or a lesson were invisible to `summary()` and `isFullyComplete()` —
+an enrollment reported complete, and could be certified, with them unpassed. It
+now walks all three columns.
+
+Three ways to break it again, each covered by a test:
+
+- **Leaking scope.** The `orWhereIn`s must stay inside a closure, or the OR
+  escapes its `where` and pulls in tests from courses the learner is not
+  enrolled in.
+- **Double counting.** A test naming `course_id`, `module_id` AND `lesson_id`
+  is one test. Counting it per matching branch inflates the denominator and
+  nobody can ever finish.
+- **Curriculum fan-out.** A curriculum has to see module/lesson tests across
+  *all* its courses, not just the first.
+
+## Certificates are fine-print documents, not HTML
+
+`CertificateService::pdf()` = `FinePrint\Agent::toBytes(document(), ['fonts' => ...])`.
+`document()` picks the template (the row's `document`, else
+`certificates.default_template`, else the packaged
+`resources/certificates/default.fine-print.json`) and hands it to
+`Certificates\CertificateDocument::build()`, which is pure: fancy-template
+envelope + scalar data in, fine-print JSON out.
+
+- **Templates get scalars, never models** (`templateData()`). That is what
+  makes a template stored through the admin API safe; don't pass a model or a
+  relation in, however convenient.
+- **A template is inspected on SAVE** (`CertificateTemplateController`,
+  `Template::inspect()`, 422 with paths). Don't move that check to render
+  time: a broken template would then fail at a learner's download.
+- **Fonts default to fine-print's bundled Tinos/Cousine, registered as
+  `Times`/`Courier`**, so the packaged template embeds them. Dropping the
+  `fonts` option prints non-Windows-1252 names as `?`;
+  `test_a_name_outside_windows_1252_prints_exactly` is red if you do.
+- `resources/certificates/default.fine-print.json` is fancy-template's
+  `examples/certificate.fine-print.json` (only its `description` differs),
+  whose golden test reads it back through fine-print. Change both or neither.
+- `renderHtml()`, the Blade view, `html`/`css`/`blade_view`, `default_view` and
+  `template_attributes` are deprecated (0.4.0) and do not touch the PDF.
+
+## Testing
+
+```bash
+composer install
+vendor/bin/phpunit                                   # 97 tests
+vendor/bin/phpunit --filter AuthorizationTest        # the security contract
+```
+
+`tests/TestCase.php` runs on `orchestra/testbench` with in-memory SQLite and
+points `laravel-courses.user_model` at `Tests\Fixtures\TestUser` — that is what
+keeps the host-model config an actual contract instead of a comment.
+
+`tests/smoke-*.php` are NOT part of the suite. They run against a real host app
+through `artisan tinker` and predate the tests; keep them for host-level checks,
+but new coverage belongs in `tests/Feature`.
+
+## Publishing
+
+PHP package — auto-syncs to Packagist from git tags (no publish workflow). Ship =
+bump → CHANGELOG in the same commit → tag `vX.Y.Z` → push tag. **First publish
+requires a one-time Packagist submit + GitHub webhook.** Then advance the
+envelope pin. See the envelope's `.ai/knowledge/publishing.md`.
