@@ -11,12 +11,13 @@ upgrading.
 ## [Unreleased]
 
 ### Changed
-- `composer test` now runs the suite (`scripts.test` → `phpunit`). The release
+- `composer test` now runs the suite (`scripts.test` → `phpunit`, now `pest`). The release
   preflight reads that script, and without it a release ran no checks at all,
   even though CI calls `vendor/bin/phpunit` directly. Consumer action: none.
 - Rebranded the display name to Fancy Dev Kit (README and package description). Package names, the npm scope, URLs and the `fancy-ui` MCP id are unchanged.
 - **Docs:** `AGENTS.md` is now the guide to using this package (install, its entries on the Fancy MCP catalog server, API essentials, traps). The contributor notes it held moved to `CONTRIBUTING.md`, and `CLAUDE.md` is now a symlink to it. The README points to the MCP server and to `AGENTS.md`. No code changed; nothing to do.
 - CI: re-pin org third-party allowlist to 2614224
+- Tests moved to Pest; orchestra/testbench and phpunit/phpunit removed from require-dev. No runtime change. The suite now boots a hand-built Laravel host (`tests/TestCase.php`) on `laravel/framework`, added to `require-dev` as the framework this package integrates with (the integration-framework carve-out). `fakerphp/faker`, which the factories use and testbench used to bring in, is now a direct `require-dev`. `composer test` runs `pest`; CI runs `vendor/bin/pest`. Consumer action: none.
 
 ## 0.4.0 — 2026-11-01
 

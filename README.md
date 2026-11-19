@@ -213,11 +213,11 @@ The `CoursesClient` (axios) covers the learner flow. Pass `learnerId` in its opt
 
 ## Tests
 
-The suite runs standalone on Orchestra Testbench:
+The suite runs standalone on Pest, with a hand-built Laravel host (no Orchestra Testbench):
 
 ```sh
 composer install
-vendor/bin/phpunit
+vendor/bin/pest
 ```
 
 The shipped tests cover the full learner flow (enroll → complete lesson → pass test → issue certificate → public verify) and the revocation cycle. Factories for every model live under `database/factories/`.

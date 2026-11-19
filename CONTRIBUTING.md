@@ -121,11 +121,13 @@ envelope + scalar data in, fine-print JSON out.
 
 ```bash
 composer install
-vendor/bin/phpunit                                   # 97 tests
-vendor/bin/phpunit --filter AuthorizationTest        # the security contract
+vendor/bin/pest                                      # 97 tests
+vendor/bin/pest tests/Feature/AuthorizationTest.php  # the security contract
 ```
 
-`tests/TestCase.php` runs on `orchestra/testbench` with in-memory SQLite and
+The suite is Pest. `tests/TestCase.php` is a hand-built Laravel host on
+`laravel/framework` alone (no `orchestra/testbench`, which the owner declined),
+with in-memory SQLite; it
 points `laravel-courses.user_model` at `Tests\Fixtures\TestUser` — that is what
 keeps the host-model config an actual contract instead of a comment.
 
