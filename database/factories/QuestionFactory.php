@@ -12,6 +12,8 @@ use ParticleAcademy\LaravelCourses\Models\Test;
 /** @extends Factory<Question> */
 class QuestionFactory extends Factory
 {
+    use UsesFakeData;
+
     protected $model = Question::class;
 
     /** @return array<string,mixed> */
@@ -19,7 +21,7 @@ class QuestionFactory extends Factory
     {
         return [
             'test_id'    => Test::factory(),
-            'prompt'     => $this->faker->sentence() . '?',
+            'prompt'     => $this->fakeData()->sentence() . '?',
             'type'       => QuestionType::MultipleChoice,
             'points'     => 1,
             'sort_order' => 0,

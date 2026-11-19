@@ -10,21 +10,23 @@ use ParticleAcademy\LaravelCourses\Models\Course;
 /** @extends Factory<Course> */
 class CourseFactory extends Factory
 {
+    use UsesFakeData;
+
     protected $model = Course::class;
 
     /** @return array<string,mixed> */
     public function definition(): array
     {
-        $title = $this->faker->unique()->sentence(3);
+        $title = $this->fakeData()->unique()->sentence(3);
 
         return [
-            'slug'              => \Illuminate\Support\Str::slug($title) . '-' . $this->faker->unique()->randomNumber(5),
+            'slug'              => \Illuminate\Support\Str::slug($title) . '-' . $this->fakeData()->unique()->randomNumber(5),
             'title'             => $title,
-            'description'       => $this->faker->paragraph(),
+            'description'       => $this->fakeData()->paragraph(),
             'sort_order'        => 0,
             'is_published'      => true,
             'is_required'       => false,
-            'estimated_minutes' => $this->faker->numberBetween(15, 240),
+            'estimated_minutes' => $this->fakeData()->numberBetween(15, 240),
             'hours'             => null,
             'price'             => null,
             'currency'          => null,

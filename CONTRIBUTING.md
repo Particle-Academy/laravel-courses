@@ -121,7 +121,7 @@ envelope + scalar data in, fine-print JSON out.
 
 ```bash
 composer install
-vendor/bin/pest                                      # 97 tests
+vendor/bin/pest                                      # 103 tests
 vendor/bin/pest tests/Feature/AuthorizationTest.php  # the security contract
 ```
 

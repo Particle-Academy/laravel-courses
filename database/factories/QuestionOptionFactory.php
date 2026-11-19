@@ -11,6 +11,8 @@ use ParticleAcademy\LaravelCourses\Models\QuestionOption;
 /** @extends Factory<QuestionOption> */
 class QuestionOptionFactory extends Factory
 {
+    use UsesFakeData;
+
     protected $model = QuestionOption::class;
 
     /** @return array<string,mixed> */
@@ -18,7 +20,7 @@ class QuestionOptionFactory extends Factory
     {
         return [
             'question_id' => Question::factory(),
-            'label'       => $this->faker->word(),
+            'label'       => $this->fakeData()->word(),
             'is_correct'  => false,
             'sort_order'  => 0,
         ];

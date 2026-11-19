@@ -10,15 +10,17 @@ use ParticleAcademy\LaravelCourses\Models\CertificateTemplate;
 /** @extends Factory<CertificateTemplate> */
 class CertificateTemplateFactory extends Factory
 {
+    use UsesFakeData;
+
     protected $model = CertificateTemplate::class;
 
     /** @return array<string,mixed> */
     public function definition(): array
     {
-        $name = $this->faker->unique()->words(2, true);
+        $name = $this->fakeData()->unique()->words(2, true);
 
         return [
-            'slug'       => \Illuminate\Support\Str::slug($name) . '-' . $this->faker->unique()->randomNumber(5),
+            'slug'       => \Illuminate\Support\Str::slug($name) . '-' . $this->fakeData()->unique()->randomNumber(5),
             'name'       => $name,
             'is_default' => false,
         ];

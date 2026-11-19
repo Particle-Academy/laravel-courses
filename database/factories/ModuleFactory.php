@@ -11,12 +11,14 @@ use ParticleAcademy\LaravelCourses\Models\Module;
 /** @extends Factory<Module> */
 class ModuleFactory extends Factory
 {
+    use UsesFakeData;
+
     protected $model = Module::class;
 
     /** @return array<string,mixed> */
     public function definition(): array
     {
-        $title = $this->faker->unique()->sentence(2);
+        $title = $this->fakeData()->unique()->sentence(2);
 
         return [
             'course_id'  => Course::factory(),
