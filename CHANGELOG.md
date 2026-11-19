@@ -11,6 +11,8 @@ upgrading.
 ## [Unreleased]
 
 ### Changed
+- **BREAKING:** Laravel 13 is the minimum; an app on Laravel 12 or older can no longer install this; upgrade Laravel. On Laravel 13, do nothing.
+- Requires `laravel/framework` `^13.0`, because `src/` uses `Illuminate\Foundation`, which ships only in the framework. It moved from `require-dev` to `require`.
 - `composer test` now runs the suite (`scripts.test` → `phpunit`, now `pest`). The release
   preflight reads that script, and without it a release ran no checks at all,
   even though CI calls `vendor/bin/phpunit` directly. Consumer action: none.
