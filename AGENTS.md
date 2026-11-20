@@ -16,11 +16,34 @@ php artisan vendor:publish --tag=laravel-courses-config   # optional
   `particle-academy/fine-print` from `particle-academy/fancy-template`
   envelopes; both come in as dependencies.
 - `CoursesServiceProvider` auto-discovers; migrations and routes load
-  automatically. Routes mount under `api/courses` with `['api', 'auth:sanctum']`
-  middleware by default (`laravel-courses.routes`).
+  automatically. Routes mount under `api/courses` with
+  `['api']` middleware by default (`laravel-courses.routes`); see "Route
+  middleware" below before you ship.
 - Set `laravel-courses.user_model` to the host's user model.
 - Optional companions: `@particle-academy/classroom` (learner-facing React UI)
   and `particle-academy/teachers-aid` (authoring agent). Neither is required.
+
+## Route middleware
+
+The shipped default is `['api']`, and it stays that way on purpose: the
+published catalogue (`GET courses`, `curriculums`, `tests`, ...) and
+`GET verify/{code}` are public, and an authentication middleware on the whole
+group would close them. `auth:sanctum` would also need Laravel Sanctum, which
+this package does not require.
+
+The learner routes (enrollments, lesson completion, attempts, a learner's
+certificates) identify the learner with `$request->user()`, so the group needs
+whatever makes that work in your app:
+
+- **Session sign-in (Fortify, Breeze, a starter kit):** `['web']`. Learner
+  routes then see the signed-in user; the catalogue stays public.
+- **Token API where everything is private:** `['api', 'auth:sanctum']`.
+  This closes the catalogue and certificate verification too.
+- **Token API with a public catalogue:** `['api']`, with a token-reading guard
+  as the app's default guard, because `$request->user()` asks the default
+  guard. Check a learner route answers 200 with a token before you rely on it.
+
+Without a signed-in user a learner route answers **401** and writes nothing.
 
 ## Find it on the Fancy MCP server
 
@@ -52,9 +75,23 @@ it is in the registry. Server-side packages are found with
 
 - **Authoring is denied by default.** Writes go through
   `AuthorizesCourseAdmin`, whose shipped binding refuses everyone. Bind your own
-  rule in a service provider to switch authoring on. Reads and
-  `GET verify/{code}` are public on purpose; mount the routes behind your own
-  middleware if content must be private.
+  rule in a service provider to switch authoring on. Reads of PUBLISHED
+  content and `GET verify/{code}` are public on purpose; mount the routes
+  behind your own middleware if content must be private.
+- **Drafts and the answer key belong to authors.** The same
+  `AuthorizesCourseAdmin` rule decides who sees an unpublished course or
+  curriculum (and its modules, lessons, tests and questions; everyone else
+  gets a 404, and listings leave drafts out) and who receives `is_correct` on
+  options and a question's `explanation`. Learners never receive the key, not
+  when starting an attempt and not by passing `hide_answers=0`. An author can
+  pass `hide_answers=1` to see the learner's view. Learners cannot self-enrol
+  in a draft (422, as for a missing target).
+- **Refusals are 4xx, never 500.** No signed-in learner is a 401
+  (`Exceptions\LearnerNotAuthenticated`); a course rule refusing the request is
+  `Exceptions\CourseRuleViolation`: 409 for a third attempt where two are
+  allowed or a resubmitted attempt, 422 for a lesson outside the enrollment or
+  impossible attendance hours. Both extend `RuntimeException`, so a host
+  calling the services directly can keep catching that.
 - **Self-enrolment is free-only by default** (`GatesSelfEnrollment` /
   `FreeEnrollmentOnly`). A host that sells courses enrols the buyer itself via
   `EnrollmentService` once payment confirms; bind your own gate to change the

@@ -9,12 +9,14 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use ParticleAcademy\LaravelCourses\Http\Resources\TestResource;
 use ParticleAcademy\LaravelCourses\Models\Test;
+use ParticleAcademy\LaravelCourses\Support\ContentAccess;
 
 class TestController extends Controller
 {
     public function index(Request $request): mixed
     {
-        $query = Test::query();
+        // Tests of a draft course are listed to authors only.
+        $query = ContentAccess::visibleTests(Test::query(), $request);
 
         if ($courseId = $request->integer('course_id')) {
             $query->where('course_id', $courseId);
@@ -33,10 +35,12 @@ class TestController extends Controller
 
     public function show(Request $request, Test $test): TestResource
     {
+        ContentAccess::abortUnlessTestVisible($test, $request);
+
         $test->load(['questions.options']);
 
         return TestResource::make($test)->additional([
-            'meta' => ['hide_answers' => $request->boolean('hide_answers')],
+            'meta' => ['hide_answers' => ContentAccess::hidesAnswers($request)],
         ]);
     }
 

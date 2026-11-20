@@ -27,10 +27,14 @@ use Illuminate\Http\Request;
  *       }
  *   });
  *
- * Read routes are NOT gated here. A catalogue of published courses is normally
- * public, and gating it by default would break the common case; hosts that need
- * private content should mount the package behind their own middleware via
- * `laravel-courses.routes.middleware`.
+ * Read routes of PUBLISHED content are NOT gated here. A catalogue of published
+ * courses is normally public, and gating it by default would break the common
+ * case; hosts that need private content should mount the package behind their
+ * own middleware via `laravel-courses.routes.middleware`.
+ *
+ * The same rule decides who sees the inside of a course on the read routes:
+ * unpublished courses and curriculums (and their content), and the answer key
+ * (`is_correct`, `explanation`). See Support\ContentAccess.
  */
 interface AuthorizesCourseAdmin
 {

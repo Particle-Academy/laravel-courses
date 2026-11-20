@@ -15,6 +15,7 @@ use ParticleAcademy\LaravelCourses\Models\Curriculum;
 use ParticleAcademy\LaravelCourses\Models\Enrollment;
 use ParticleAcademy\LaravelCourses\Services\EnrollmentService;
 use ParticleAcademy\LaravelCourses\Services\ProgressService;
+use ParticleAcademy\LaravelCourses\Support\ContentAccess;
 use ParticleAcademy\LaravelCourses\Support\LearnerResolver;
 
 class EnrollmentController extends Controller
@@ -74,6 +75,15 @@ class EnrollmentController extends Controller
             ->where('enrollable_type', $target::class)
             ->where('enrollable_id', $target->getKey())
             ->exists();
+
+        // A draft is not public, so it is not there to enrol in: the same answer
+        // as a missing target. A learner the host already enrolled keeps theirs.
+        $visible = $target instanceof Curriculum
+            ? ContentAccess::curriculumIsVisible($target, $request)
+            : ContentAccess::courseIsVisible($target, $request);
+        if (! $alreadyEnrolled && ! $visible) {
+            throw ValidationException::withMessages(['target' => 'Target not found.']);
+        }
 
         abort_unless(
             $alreadyEnrolled || $this->gate->allows($request, $userId, $target),

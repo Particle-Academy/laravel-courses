@@ -37,7 +37,7 @@ php artisan vendor:publish --tag=laravel-courses-migrations   # if you need to c
 'routes' => [
     'enabled'    => true,
     'prefix'     => 'api/courses',
-    'middleware' => ['api', 'auth:sanctum'],         // gate however you authenticate
+    'middleware' => ['api'],                         // shipped default; see "Route middleware" in AGENTS.md
 ],
 'defaults' => [
     'passing_score' => 70,

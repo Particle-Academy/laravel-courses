@@ -9,12 +9,14 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use ParticleAcademy\LaravelCourses\Http\Resources\CourseResource;
 use ParticleAcademy\LaravelCourses\Models\Course;
+use ParticleAcademy\LaravelCourses\Support\ContentAccess;
 
 class CourseController extends Controller
 {
     public function index(Request $request): mixed
     {
-        $query = Course::query()->orderBy('sort_order');
+        // Drafts are listed to authors only; published_only narrows an author's view.
+        $query = ContentAccess::visibleCourses(Course::query(), $request)->orderBy('sort_order');
 
         if ($request->boolean('published_only')) {
             $query->where('is_published', true);
@@ -23,8 +25,10 @@ class CourseController extends Controller
         return CourseResource::collection($query->paginate((int) $request->query('per_page', 25)));
     }
 
-    public function show(Course $course): CourseResource
+    public function show(Request $request, Course $course): CourseResource
     {
+        ContentAccess::abortUnlessCourseVisible($course, $request);
+
         $course->load(['modules.lessons', 'lessons', 'tests', 'certificateTemplate']);
 
         return new CourseResource($course);

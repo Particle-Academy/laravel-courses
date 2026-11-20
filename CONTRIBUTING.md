@@ -35,8 +35,18 @@ enrollment ── lesson_completion                          test_attempt ──
 - **Deny by default.** Writes go through `AuthorizesCourseAdmin`, whose shipped
   binding refuses everyone. A host binds its own rule to switch authoring on.
   **Never widen this to "allow unless configured"** — it was exactly that once,
-  and an anonymous request could mint a certificate for any user id. Reads and
-  `GET verify/{code}` stay public on purpose.
+  and an anonymous request could mint a certificate for any user id. Reads of
+  published content and `GET verify/{code}` stay public on purpose.
+- **Drafts and the answer key are author-only, by default.** `Support\ContentAccess`
+  asks the same `AuthorizesCourseAdmin` rule (once per request). Hiding is the
+  default; `hide_answers` can only hide more, never reveal. Never make a
+  reader opt out of the key or out of drafts; `AnswerKeyTest` and
+  `DraftVisibilityTest` are red if you do.
+- **A refusal is a 4xx and writes nothing.** `LearnerResolver` throws
+  `LearnerNotAuthenticated` (401); the services throw `CourseRuleViolation`
+  (409/422). Both are HttpExceptions and RuntimeExceptions. A plain
+  `RuntimeException` from a request path is a 500; use it only for a broken
+  install (bad config, missing rows), never for a learner's request.
 - **Self-enrolment is free-only by default.** `GatesSelfEnrollment` is asked
   before `POST enrollments` creates anything; `FreeEnrollmentOnly` refuses a
   priced target. A host that sells enrols the buyer itself via
@@ -121,7 +131,7 @@ envelope + scalar data in, fine-print JSON out.
 
 ```bash
 composer install
-vendor/bin/pest                                      # 103 tests
+vendor/bin/pest                                      # 120 tests
 vendor/bin/pest tests/Feature/AuthorizationTest.php  # the security contract
 ```
 

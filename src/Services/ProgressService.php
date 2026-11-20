@@ -6,6 +6,7 @@ namespace ParticleAcademy\LaravelCourses\Services;
 
 use Illuminate\Support\Collection;
 use ParticleAcademy\LaravelCourses\Events\AttendanceRecorded;
+use ParticleAcademy\LaravelCourses\Exceptions\CourseRuleViolation;
 use ParticleAcademy\LaravelCourses\Events\LessonCompleted;
 use ParticleAcademy\LaravelCourses\Models\Attendance;
 use ParticleAcademy\LaravelCourses\Models\Course;
@@ -15,7 +16,6 @@ use ParticleAcademy\LaravelCourses\Models\Lesson;
 use ParticleAcademy\LaravelCourses\Models\LessonCompletion;
 use ParticleAcademy\LaravelCourses\Models\Module;
 use ParticleAcademy\LaravelCourses\Models\Test;
-use RuntimeException;
 
 class ProgressService
 {
@@ -61,11 +61,11 @@ class ProgressService
         ?string $notes = null,
     ): Attendance {
         if ($hours <= 0 || $hours > 24) {
-            throw new RuntimeException('Attendance hours must be more than 0 and at most 24.');
+            throw CourseRuleViolation::unprocessable('Attendance hours must be more than 0 and at most 24.');
         }
 
         if (! $this->coursesFor($enrollment)->contains(fn (Course $course): bool => $course->isInPerson())) {
-            throw new RuntimeException(
+            throw CourseRuleViolation::unprocessable(
                 "Enrollment #{$enrollment->getKey()} has no in-person course to attend.",
             );
         }
@@ -278,7 +278,7 @@ class ProgressService
     private function assertLessonInScope(Enrollment $enrollment, Lesson $lesson): void
     {
         if (! $this->lessonIdsFor($enrollment)->contains($lesson->getKey())) {
-            throw new RuntimeException(
+            throw CourseRuleViolation::unprocessable(
                 "Lesson #{$lesson->getKey()} is not part of enrollment #{$enrollment->getKey()}'s target.",
             );
         }

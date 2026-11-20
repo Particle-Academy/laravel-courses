@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ParticleAcademy\LaravelCourses\Support;
 
 use Illuminate\Http\Request;
-use RuntimeException;
+use ParticleAcademy\LaravelCourses\Exceptions\LearnerNotAuthenticated;
 
 /**
  * Resolves the learner's user id for the current request.
@@ -41,8 +41,7 @@ class LearnerResolver
             }
         }
 
-        throw new RuntimeException(
-            'Unable to resolve learner. Authenticate the request or supply user_id.',
-        );
+        // A 401, not a 500; nothing has been written by the time this throws.
+        throw new LearnerNotAuthenticated();
     }
 }

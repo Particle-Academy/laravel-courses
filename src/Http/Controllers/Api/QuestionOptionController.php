@@ -10,11 +10,14 @@ use Illuminate\Routing\Controller;
 use ParticleAcademy\LaravelCourses\Http\Resources\QuestionOptionResource;
 use ParticleAcademy\LaravelCourses\Models\Question;
 use ParticleAcademy\LaravelCourses\Models\QuestionOption;
+use ParticleAcademy\LaravelCourses\Support\ContentAccess;
 
 class QuestionOptionController extends Controller
 {
-    public function index(Question $question): mixed
+    public function index(Request $request, Question $question): mixed
     {
+        abort_unless($question->test !== null && ContentAccess::testIsVisible($question->test, $request), 404);
+
         return QuestionOptionResource::collection($question->options);
     }
 

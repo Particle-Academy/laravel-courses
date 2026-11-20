@@ -10,12 +10,14 @@ use Illuminate\Routing\Controller;
 use ParticleAcademy\LaravelCourses\Http\Resources\CurriculumResource;
 use ParticleAcademy\LaravelCourses\Models\Course;
 use ParticleAcademy\LaravelCourses\Models\Curriculum;
+use ParticleAcademy\LaravelCourses\Support\ContentAccess;
 
 class CurriculumController extends Controller
 {
     public function index(Request $request): mixed
     {
-        $query = Curriculum::query()->orderBy('sort_order');
+        // Drafts are listed to authors only; published_only narrows an author's view.
+        $query = ContentAccess::visibleCourses(Curriculum::query(), $request)->orderBy('sort_order');
 
         if ($request->boolean('published_only')) {
             $query->where('is_published', true);
@@ -24,9 +26,15 @@ class CurriculumController extends Controller
         return CurriculumResource::collection($query->paginate((int) $request->query('per_page', 25)));
     }
 
-    public function show(Curriculum $curriculum): CurriculumResource
+    public function show(Request $request, Curriculum $curriculum): CurriculumResource
     {
-        $curriculum->load(['courses', 'certificateTemplate']);
+        abort_unless(ContentAccess::curriculumIsVisible($curriculum, $request), 404);
+
+        // A published curriculum may hold draft courses; those stay hidden too.
+        $curriculum->load([
+            'courses' => static fn ($courses) => ContentAccess::visibleCourses($courses->getQuery(), $request),
+            'certificateTemplate',
+        ]);
 
         return new CurriculumResource($curriculum);
     }

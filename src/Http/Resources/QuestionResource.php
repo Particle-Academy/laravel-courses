@@ -6,6 +6,7 @@ namespace ParticleAcademy\LaravelCourses\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use ParticleAcademy\LaravelCourses\Support\ContentAccess;
 
 /** @mixin \ParticleAcademy\LaravelCourses\Models\Question */
 class QuestionResource extends JsonResource
@@ -13,7 +14,8 @@ class QuestionResource extends JsonResource
     /** @return array<string,mixed> */
     public function toArray(Request $request): array
     {
-        $hideAnswers = (bool) $request->boolean('hide_answers');
+        // The answer key is for authors only; see ContentAccess::hidesAnswers().
+        $hideAnswers = ContentAccess::hidesAnswers($request);
 
         return [
             'id'          => $this->id,

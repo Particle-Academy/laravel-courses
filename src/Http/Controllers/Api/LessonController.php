@@ -10,19 +10,23 @@ use Illuminate\Routing\Controller;
 use ParticleAcademy\LaravelCourses\Http\Resources\LessonResource;
 use ParticleAcademy\LaravelCourses\Models\Course;
 use ParticleAcademy\LaravelCourses\Models\Lesson;
+use ParticleAcademy\LaravelCourses\Support\ContentAccess;
 
 class LessonController extends Controller
 {
-    public function index(Course $course): mixed
+    public function index(Request $request, Course $course): mixed
     {
+        ContentAccess::abortUnlessCourseVisible($course, $request);
+
         return LessonResource::collection(
             $course->lessons()->with('tests')->get(),
         );
     }
 
-    public function show(Course $course, Lesson $lesson): LessonResource
+    public function show(Request $request, Course $course, Lesson $lesson): LessonResource
     {
         abort_unless($lesson->course_id === $course->id, 404);
+        ContentAccess::abortUnlessCourseVisible($course, $request);
 
         $lesson->load('tests');
 

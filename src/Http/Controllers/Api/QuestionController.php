@@ -11,19 +11,23 @@ use Illuminate\Support\Facades\DB;
 use ParticleAcademy\LaravelCourses\Http\Resources\QuestionResource;
 use ParticleAcademy\LaravelCourses\Models\Question;
 use ParticleAcademy\LaravelCourses\Models\Test;
+use ParticleAcademy\LaravelCourses\Support\ContentAccess;
 
 class QuestionController extends Controller
 {
-    public function index(Test $test): mixed
+    public function index(Request $request, Test $test): mixed
     {
+        ContentAccess::abortUnlessTestVisible($test, $request);
+
         return QuestionResource::collection(
             $test->questions()->with('options')->get(),
         );
     }
 
-    public function show(Test $test, Question $question): QuestionResource
+    public function show(Request $request, Test $test, Question $question): QuestionResource
     {
         abort_unless($question->test_id === $test->id, 404);
+        ContentAccess::abortUnlessTestVisible($test, $request);
 
         $question->load('options');
 

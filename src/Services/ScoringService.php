@@ -12,6 +12,7 @@ use ParticleAcademy\LaravelCourses\Models\Enrollment;
 use ParticleAcademy\LaravelCourses\Models\Question;
 use ParticleAcademy\LaravelCourses\Models\Test;
 use ParticleAcademy\LaravelCourses\Models\TestAttempt;
+use ParticleAcademy\LaravelCourses\Exceptions\CourseRuleViolation;
 use RuntimeException;
 
 class ScoringService
@@ -31,7 +32,7 @@ class ScoringService
             ->count();
 
         if ($max !== null && $existing >= $max) {
-            throw new RuntimeException("Maximum attempts ({$max}) reached for test #{$test->getKey()}.");
+            throw CourseRuleViolation::conflict("Maximum attempts ({$max}) reached for test #{$test->getKey()}.");
         }
 
         return TestAttempt::create([
@@ -50,7 +51,7 @@ class ScoringService
     public function submitAnswers(TestAttempt $attempt, array $answers): TestAttempt
     {
         if ($attempt->isFinished()) {
-            throw new RuntimeException("Attempt #{$attempt->getKey()} is already finished.");
+            throw CourseRuleViolation::conflict("Attempt #{$attempt->getKey()} is already finished.");
         }
 
         $test = $attempt->test()->with('questions.options')->first();
