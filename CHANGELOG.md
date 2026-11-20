@@ -10,6 +10,8 @@ upgrading.
 
 ## [Unreleased]
 
+## 0.5.0 — 2026-11-20
+
 ### Changed
 - **BREAKING:** Laravel 13 is the minimum; an app on Laravel 12 or older can no longer install this; upgrade Laravel. On Laravel 13, do nothing.
 - Requires `laravel/framework` `^13.0`, because `src/` uses `Illuminate\Foundation`, which ships only in the framework. It moved from `require-dev` to `require`.
